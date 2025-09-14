@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.home.HomeFragment">
+
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:paddingTop="50dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_cpul"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="start"
+                android:textAlignment="viewStart"
+                android:text="CPU Usage"
+                android:textSize="20sp"
+                android:paddingBottom="10dp"
+                android:textStyle="bold"/>
+
+            <view
+                android:id="@+id/realtimeview_CPU"
+                class="com.example.statusbarshow.RealTimeCurveView"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                app:axisON="true"
+                app:historyON="false"
+                android:paddingBottom="10dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:orientation="horizontal">
+                <!--使用app:可对作画属性做最基本的设置，对应项目在attributes.xml中-->
+                <view
+                    android:id="@+id/realtimeview_CPU0"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU0"/>
+                <view
+                    android:id="@+id/realtimeview_CPU1"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU1"/>
+                <view
+                    android:id="@+id/realtimeview_CPU2"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU2"/>
+                <view
+                    android:id="@+id/realtimeview_CPU3"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU3"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:orientation="horizontal">
+                <view
+                    android:id="@+id/realtimeview_CPU4"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU4"/>
+                <view
+                    android:id="@+id/realtimeview_CPU5"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU5"/>
+                <view
+                    android:id="@+id/realtimeview_CPU6"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU6"/>
+                <view
+                    android:id="@+id/realtimeview_CPU7"
+                    class="com.example.statusbarshow.RealTimeCurveView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:axisON="false"
+                    app:historyON="false"
+                    app:cpuNu="CPU7"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/text_meml"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:textSize="20sp"
+                android:gravity="start"
+                android:textAlignment="viewStart"
+                android:text="Memory Usage"
+                android:textStyle="bold"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"/>
+
+            <view
+                android:id="@+id/realtimeview_MEM"
+                class="com.example.statusbarshow.RealTimeCurveView"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                app:axisON="true"
+                app:historyON="false"
+                android:paddingBottom="50dp"/>
+
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

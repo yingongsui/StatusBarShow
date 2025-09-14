@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--对View进行具体的设置-->
+<resources>
+    <declare-styleable name="RealTimeCurveView">
+        <!--        设定是否画坐标轴-->
+        <attr name="axisON" format="boolean" />
+        <attr name="cpuNu" format="string" />
+        <attr name="historyON" format="boolean" />
+    </declare-styleable>
+</resources>

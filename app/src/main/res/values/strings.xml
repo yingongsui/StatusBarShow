@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">StatusBarShow</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Information</string>
+    <string name="title_notifications">Setting</string>
+    <string name="appversion">1.0</string>
+</resources>
