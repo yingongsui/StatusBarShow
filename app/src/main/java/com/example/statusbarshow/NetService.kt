@@ -24,7 +24,7 @@ class NetService : Service() {
     }
     override fun onCreate() {
         //通知频道设置
-        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_MIN)
         //静音无震动
         channel.setSound(null, null)
         channel.enableVibration(false)
@@ -117,11 +117,11 @@ class NetService : Service() {
         return  NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))
                 .setContentTitle("NETWORK")
-                .setContentText("NETWORK SPEED : $currentvalue[0] $currentvalue[1]")
+                .setContentText("NETWORK SPEED : ${currentvalue[0]} ${currentvalue[1]}")
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setAutoCancel(true)
                 .setGroupSummary(false)
-                .setGroup("SYS_STATE")
+                .setGroup("NET_STATE")
                 .setSortKey("NET")
                 .build()
 

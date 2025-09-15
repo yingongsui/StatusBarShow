@@ -148,7 +148,7 @@ class CPUMEMNotiService : Service() {
                 .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))        //创建显示CPU的比特图
                 .setContentTitle("USAGE")
                 .setContentText("CPU : ${currentvalue[0]} | MEM : ${currentvalue[1]}")
-                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setAutoCancel(true)
                 .setGroup("SYS_STATE")
                 .setSortKey("CPUMEM")
