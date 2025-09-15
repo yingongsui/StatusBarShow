@@ -30,6 +30,7 @@ class CPUMEMNotiService : Service() {
         //创建通知频道
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
+
         //静音无震动
         channel.setSound(null, null)
         channel.enableVibration(false)
