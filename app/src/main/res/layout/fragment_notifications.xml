@@ -23,7 +23,6 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="6dp"
                 android:background="@android:color/black">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -31,67 +30,29 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/cpusettitle"
+                        android:id="@+id/nwtsettitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="CPU Setting"
+                        android:text="Monitor Setting"
                         android:textSize="25sp"
                         android:textStyle="bold" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/CPUswitch"
+                        android:id="@+id/NetSpeedswitch"
                         android:layout_width="match_parent"
                         android:layout_height="70dp"
-                        android:text="CPU Monitor" />
+                        android:text="Net Speed Monitor" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/CPUnotiswitch"
+                        android:id="@+id/CPUMEMNoswitch"
                         android:layout_width="match_parent"
                         android:layout_height="70dp"
-                        android:text="CPU Notification" />
-
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="10dp" />
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                android:background="@color/teal_700">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    <TextView
-                        android:id="@+id/memsettitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Memory Setting"
-                        android:textSize="25sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/MEMswitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:text="Memory Monitor" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/MEMnotiswitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:text="Memory Notification" />
+                        android:text="CPU Memory Monitor" />
 
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>
+
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="10dp" />
@@ -109,28 +70,27 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/nwtsettitle"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/SRtitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Other Setting"
+                        android:text="Sampling Rate (ms) "
                         android:textSize="25sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"/>
 
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/NetSpeedswitch"
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/SRseekBar"
                         android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:text="Net Speed Monitor" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/CPUMEMNoswitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:text="CPU Memory Merge Notification" />
+                        android:layout_height="40dp"
+                        android:valueFrom="500"
+                        android:valueTo="3000"
+                        android:stepSize="500"
+                        android:value="1500"
+                        app:labelBehavior="floating"/>
 
                 </LinearLayout>
 
             </androidx.cardview.widget.CardView>
+
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="10dp" />

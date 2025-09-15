@@ -32,10 +32,6 @@ class DashboardFragment : Fragment() {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-//        val textView: TextView = binding.textDashboard
-//        dashboardViewModel.text.observe(viewLifecycleOwner) {
-//            textView.text = it
-//        }
 
         val prefs = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
@@ -57,6 +53,7 @@ class DashboardFragment : Fragment() {
         )
 
         cpuinfoView.adapter = cpuadapter
+        setListViewHeightBasedOnChildren(cpuinfoView)
 
         val stoinfoView : ListView = binding.listviewStoinfo   //binding引用时下划线转为大写
 
@@ -73,6 +70,8 @@ class DashboardFragment : Fragment() {
             intArrayOf(R.id.title, R.id.info)
         )
         stoinfoView.adapter = stoadapter
+        setListViewHeightBasedOnChildren(stoinfoView)
+
         return root
     }
 
@@ -80,4 +79,21 @@ class DashboardFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    //让 ListView 展开所有项
+    fun setListViewHeightBasedOnChildren(listView: ListView) {
+        val adapter = listView.adapter ?: return
+        var totalHeight = 0
+        for (i in 0 until adapter.count) {
+            val listItem = adapter.getView(i, null, listView)
+            listItem.measure(0, 0)
+            totalHeight += listItem.measuredHeight
+        }
+        val params = listView.layoutParams
+        params.height = totalHeight + listView.dividerHeight * (adapter.count - 1)
+        listView.layoutParams = params
+    }
+
+
+
 }

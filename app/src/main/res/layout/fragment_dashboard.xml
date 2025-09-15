@@ -6,46 +6,52 @@
     android:layout_height="match_parent"
     tools:context=".ui.dashboard.DashboardFragment">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="1dp"
-        android:paddingTop="50dp"
-        android:paddingBottom="50dp">
-
-        <TextView
-            android:id="@+id/cpuinfotitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CPU Information"
-            android:textSize="25sp"
-            android:textStyle="bold" />
-
-        <ListView
-            android:id="@+id/listview_cpuinfo"
+        android:fillViewport="true">
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
-            tools:layout_editor_absoluteX="0dp"
-            android:paddingBottom="0dp"/>
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            tools:layout_editor_absoluteX="1dp"
+            tools:layout_editor_absoluteY="1dp"
+            android:paddingTop="50dp"
+            android:paddingBottom="50dp">
 
-        <TextView
-            android:id="@+id/meminfotitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Storage Information"
-            android:textSize="25sp"
-            android:textStyle="bold" />
-        <ListView
-            android:id="@+id/listview_stoinfo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
-            tools:layout_editor_absoluteX="0dp" />
+            <TextView
+                android:id="@+id/cpuinfotitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CPU Information"
+                android:textSize="25sp"
+                android:textStyle="bold" />
 
+            <ListView
+                android:id="@+id/listview_cpuinfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                tools:layout_editor_absoluteX="0dp"
+                android:paddingBottom="0dp"/>
 
+            <TextView
+                android:id="@+id/meminfotitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Storage Information"
+                android:textSize="25sp"
+                android:textStyle="bold" />
 
-    </LinearLayout>
+            <ListView
+                android:id="@+id/listview_stoinfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                tools:layout_editor_absoluteX="0dp"
+                android:paddingBottom="0dp"/>
+
+        </LinearLayout>
+
+    </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

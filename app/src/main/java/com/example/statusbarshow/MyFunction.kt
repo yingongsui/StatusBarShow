@@ -148,7 +148,7 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
 }
 
 //全局变量
-const val samplingtime :Long = 1500 //ms
+var samplingtime :Long = 1500 //ms
 var isInForeground = true
 var memstate : Array<Int> = arrayOf(0,0)
 var memusage : Int = 0
@@ -374,6 +374,7 @@ object MyFunction {
     }
 
 }
+
 
 //日志类文件
 object LogUtils {

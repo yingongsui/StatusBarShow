@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />-->
-<!--    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
 
     <application
@@ -23,32 +23,11 @@
             android:enabled="true"
             android:foregroundServiceType="dataSync"
             android:exported="false"/>
-
-        <service
-            android:name=".BroadcastService"
-            android:enabled="true"
-            android:exported="true" />
         <service
             android:name=".NetService"
             android:enabled="true"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
-        <service
-            android:name=".CPUNotiService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".MEMNotiService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".CPUService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".MEMService"
-            android:enabled="true"
-            android:exported="true" />
 
         <activity
             android:name=".MainActivity"

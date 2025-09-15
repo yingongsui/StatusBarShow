@@ -1,42 +1,132 @@
 package com.example.statusbarshow
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import androidx.core.graphics.drawable.IconCompat
 
 class CPUMEMNotiService : Service() {
+
+    private lateinit var screenReceiver: BroadcastReceiver  //用于监听屏幕是否开启
+
+    //通知频道设置
+    val channelId = "cpumem_channel"
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
     }
     override fun onCreate() {
+
+        val channel = NotificationChannel(channelId, "CPUMEM Channel", NotificationManager.IMPORTANCE_LOW)
+
+        //创建通知频道
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+        //静音无震动
+        channel.setSound(null, null)
+        channel.enableVibration(false)
+        channel.enableLights(false)
+
+        //启用通知
+        startForeground(1, updateNotification(arrayOf(" "," " )))
+        //注册广播接收器
+        screenReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
+
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> {
+                        prefs.edit { putBoolean("ScreenState", false) }
+                        LogUtils.d("BroadcastService", "OFF")
+                    }
+                    Intent.ACTION_SCREEN_ON -> {
+                        prefs.edit { putBoolean("ScreenState", true) }
+                        LogUtils.d("BroadcastService", "ON")
+                    }
+                }
+            }
+        }
+
+        //监听广播接收器
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON) // 可选：监听屏幕亮起
+        }
+        registerReceiver(screenReceiver, filter)
+
     }
 
     private var notiThread: Thread? = null
-//    private var isForeground = false
-
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
         val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
+        val corenumber : Int = prefs.getInt("CPUCoreNumber",0)
 
         if (notiThread?.isAlive != true) {       //防止跳转到其他界面时反复创建线程
+            val allcputime1state : Array<Array<Long>> = Array(corenumber+1) { Array(3) { 0L } }
+            val allcputime2state : Array<Array<Long>> = Array(corenumber+1) { Array(3) { 0L } }
+
             notiThread = Thread {
                 try {
-                    while (prefs.getBoolean("CMNoState", false) && prefs.getBoolean("ScreenState", true)) {
-                        updateNotification(arrayOf( "${totalcpuusage[1]}%","${"%.1f".format(memstate[1].toFloat() / 1024 / 1024)}G"))
-                        Thread.sleep(samplingtime)
-                        LogUtils.d("CPUMEMNotiService", "Thread Running")
+                    while (prefs.getBoolean("CMNoState", false)) {
+                        if(prefs.getBoolean("ScreenState", true)) {
+
+                            LogUtils.d("CPUMEMService", "Running")
+                            //时刻1数据
+                            MyFunction.readMemStatus() //计算内存使用率
+
+                            allcputime1state.indices.forEach { i ->
+                                allcputime1state[i] = MyFunction.readCpuStatus(i)
+                            }
+                            Thread.sleep(samplingtime)
+                            //时刻2数据
+                            allcputime2state.indices.forEach { i ->
+                                allcputime2state[i] = MyFunction.readCpuStatus(i)
+                            }
+
+                            for (i in 0..corenumber) {
+                                //空闲时间计算使用率
+                                val cpuusage1 = 100 - (allcputime2state[i][0] - allcputime1state[i][0]) * 100 / (allcputime2state[i][2] - allcputime1state[i][2])
+                                //正规化工作时间计算使用率
+                                val cpuusage2 = (allcputime2state[i][1] - allcputime1state[i][1]) * 100 / (allcputime2state[i][2] - allcputime1state[i][2])
+                                cpuusage[i] = mutableListOf(cpuusage1.toInt(), cpuusage2.toInt())
+                            }
+
+                            totalcpuusage = arrayOf(
+                                cpuusage.map { it[0] }.average().toInt(),
+                                cpuusage.map { it[1] }.average().toInt()
+                            )
+
+                            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                            notificationManager.notify(
+                                1,
+                                updateNotification(
+                                    arrayOf(
+                                        "${totalcpuusage[1]}%",
+                                        "${"%.1f".format(memstate[1].toFloat() / 1024 / 1024)}G"
+                                    )
+                                )
+                            )
+                        }
+                        else{
+                            Thread.sleep(1000)
+                        }
                     }
                 } catch (_: InterruptedException) {
                     LogUtils.d("CPUMEMNotiService", "Catch Exception >> End Thread")
                 }//捕获异常，防止导致服务崩溃。
                 stopSelf() //必须加这个，防止服务重启
             }
+
             notiThread?.start()
         }
         return START_STICKY
@@ -46,57 +136,24 @@ class CPUMEMNotiService : Service() {
     override fun onDestroy() {
         notiThread?.interrupt()
         notiThread = null
-//        isForeground = false
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(3)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        unregisterReceiver(screenReceiver)
         LogUtils.d("CPUMEMNotiService", "Stop Service")
         super.onDestroy()
 
     }
 
-    fun updateNotification(currentvalue: Array<String>){
-
-        //创建显示CPU的比特图
-        val cpumemicon = IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f))
-
-        //通知频道设置
-        val channelId = "cpumem_channel"
-        val channelName = "CPUMEM Channel"
-        val importance = NotificationManager.IMPORTANCE_LOW
-        val channel = NotificationChannel(channelId, channelName, importance)
-        //静音无震动
-        channel.setSound(null, null)
-        channel.enableVibration(false)
-        channel.enableLights(false)
-
-        //创建通知频道
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-
-        //用lazy定义无需初始化的通知变量
-        val notification by lazy {
-            NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(cpumemicon)
+    fun updateNotification(currentvalue: Array<String>) : Notification { //定义通知内容
+        return NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))        //创建显示CPU的比特图
                 .setContentTitle("USAGE")
-                .setContentText("CPU : ${totalcpuusage[1]}% | MEM : ${"%.1f".format((memstate[0]-memstate[1]).toFloat() / 1024 / 1024)}/${"%.1f".format(memstate[0].toFloat() / 1024 / 1024)}GB")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setContentText("CPU : ${currentvalue[0]} | MEM : ${currentvalue[1]}")
+                .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setAutoCancel(true)
                 .setGroup("SYS_STATE")
                 .setSortKey("CPUMEM")
                 .setGroupSummary(false)
+                .build()
 
-//                .setDefaults(NotificationCompat.DEFAULT_ALL)  // 声音，振动之类的设定
-        }
-
-        //设置小图标
-        notification.setSmallIcon(cpumemicon)
-        notificationManager.notify(3, notification.build())
-
-        //打开通知
-//        if(!isForeground) {
-//            startForeground(3, notification.build())
-//            isForeground = true
-//        } else {
-//            notificationManager.notify(3, notification.build())
-//        }
     }
 }

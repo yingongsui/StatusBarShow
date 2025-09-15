@@ -51,33 +51,23 @@ class HomeFragment : Fragment() {
         )
 
 
-        val handlercpu = Handler(Looper.getMainLooper())
-        val handlermem = Handler(Looper.getMainLooper())
+        val handlerdraw = Handler(Looper.getMainLooper())
 
-        if(prefs.getBoolean("CPUState", false)) {
-            handlercpu.post(object : Runnable {
+        if(prefs.getBoolean("CMNoState", false)) {
+            handlerdraw.post(object : Runnable {
                 override fun run() {
                     if(isInForeground){
                         cpuView.addPoint(totalcpuusage[1].toFloat())    //总利用率
                         cpuiView.indices.forEach { i ->
                             cpuiView[i].addPoint(cpuusage[i][1].toFloat())
                         } //各核心CPU利用率
-                        handlercpu.postDelayed(this, samplingtime)
-                    }
-                    }
-            })
-        }
-
-        if(prefs.getBoolean("MEMState", false)) {
-            handlermem.post(object : Runnable {
-                override fun run() {
-                    if(isInForeground){
                         memView.addPoint(memusage.toFloat())
-                        handlercpu.postDelayed(this, samplingtime)}
-                }
-
+                        handlerdraw.postDelayed(this, samplingtime)
+                    }
+                    }
             })
         }
+
         cpuView.setOnLongClickListener {
             cpuView.toggleHistory()
             true
