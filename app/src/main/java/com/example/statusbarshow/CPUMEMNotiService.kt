@@ -25,7 +25,7 @@ class CPUMEMNotiService : Service() {
     }
     override fun onCreate() {
 
-        val channel = NotificationChannel(channelId, "CPUMEM Channel", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(channelId, "CPUMEM Channel", NotificationManager.IMPORTANCE_HIGH)
 
         //创建通知频道
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -116,6 +116,8 @@ class CPUMEMNotiService : Service() {
                                     )
                                 )
                             )
+
+
                         }
                         else{
                             Thread.sleep(1000)

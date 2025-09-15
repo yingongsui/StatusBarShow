@@ -71,6 +71,7 @@ class NetService : Service() {
                 try {
                     while (prefs.getBoolean("NETSpState", false) ) {
                         if(prefs.getBoolean("ScreenState", true)){
+
                             val lastRxBytes1 = TrafficStats.getTotalRxBytes()
                             val lastTxBytes1 = TrafficStats.getTotalTxBytes()
                             Thread.sleep(samplingtime)
@@ -84,7 +85,8 @@ class NetService : Service() {
                                 notificationManager.notify(2,updateNotification(arrayOf("%.1f".format((netspeedRx+netspeedTx)/1024),"MB/s")))
                             else
                                 notificationManager.notify(2,updateNotification(arrayOf( "${(netspeedRx+netspeedTx).toInt()}","kB/s")))
-                            LogUtils.d("NetService", "Running")}
+                            LogUtils.d("NetService", "Running")
+                        }
                         else{
                             Thread.sleep(1000)
                         }
@@ -97,7 +99,7 @@ class NetService : Service() {
 
             monitorThread?.start()
         }
-        return START_STICKY     //保证服务被销毁后不会重启
+        return START_STICKY     //保证服务被销毁后重启
 
     }
 
