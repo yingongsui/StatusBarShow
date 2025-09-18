@@ -57,11 +57,13 @@ class HomeFragment : Fragment() {
             handlerdraw.post(object : Runnable {
                 override fun run() {
                     if(isInForeground){
-                        cpuView.addPoint(totalcpuusage[1].toFloat())    //总利用率
+//                        cpuView.addPoint(totalcpuusage.map { it.toFloat() }.toTypedArray())    //总利用率
+                        cpuView.addPoint(arrayOf(totalcpuusage[1].toFloat(),totalcpuusage[0].toFloat()) )   //总利用率
+
                         cpuiView.indices.forEach { i ->
-                            cpuiView[i].addPoint(cpuusage[i][1].toFloat())
+                            cpuiView[i].addPoint(arrayOf(cpuusage[i][1].toFloat()))
                         } //各核心CPU利用率
-                        memView.addPoint(memusage.toFloat())
+                        memView.addPoint(arrayOf(memusage.toFloat()))
                         handlerdraw.postDelayed(this, samplingtime)
                     }
                     }
@@ -82,7 +84,6 @@ class HomeFragment : Fragment() {
                 true
             }
         }
-
 
         return root
     }

@@ -6,5 +6,6 @@
         <attr name="axisON" format="boolean" />
         <attr name="cpuNu" format="string" />
         <attr name="historyON" format="boolean" />
+        <attr name="lineNum" format="integer" />
     </declare-styleable>
 </resources>

@@ -39,6 +39,7 @@
                 android:layout_height="250dp"
                 app:axisON="true"
                 app:historyON="false"
+                app:lineNum="2"
                 android:paddingBottom="10dp"/>
 
             <LinearLayout

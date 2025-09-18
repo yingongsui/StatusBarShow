@@ -27,8 +27,10 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
     private var historyON: Boolean = false
     private val pointNum : Int = 20
 
-
     private var viewid : String =""
+    private var linenum : Int = 1
+    private var paintColor : Array<Int> = arrayOf(Color.BLUE,Color.RED,Color.GREEN)
+
 
     //View创建时的初始化操作
     init {
@@ -37,6 +39,7 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
                 axisON = getBoolean(R.styleable.RealTimeCurveView_axisON, false)
                 cpuNu = getString(R.styleable.RealTimeCurveView_cpuNu).toString()
                 historyON = getBoolean(R.styleable.RealTimeCurveView_historyON, false)
+                linenum = getInt(R.styleable.RealTimeCurveView_lineNum, 1)
             }
         }
 
@@ -50,7 +53,8 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
 
     }
 
-    private val path = Path()
+
+    private val path: Array<Path> = Array(linenum){ Path() }
     private val paint = Paint().apply {
         color = Color.BLUE
         strokeWidth = 4f
@@ -59,23 +63,28 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
     }
 
     val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
+    private val points : MutableList<Array<Float>> = MutableList(linenum){
+        row -> prefs.getString(viewid+"HIS$row","0 ".repeat(pointNum+1).trimEnd())!!.split(" ").map { it.toFloat() }.toTypedArray()
+    }
 
-    private val points : Array<Float> = prefs.getString(viewid+"HIS","0 ".repeat(pointNum+1).trimEnd())!!.split(" ").map { it.toFloat() }.toTypedArray()
-
-//    private val points : Array<Float> = Array(pointNum+1){ 0f }
 
     fun toggleHistory() {
         historyON = !historyON
         Toast.makeText(context, if (historyON) "History ON" else "History OFF",Toast.LENGTH_SHORT).show()
 //        LogUtils.d("HistoryState",historyON.toString())
+
     }
 
-    fun addPoint(y: Float) {
-        (0..pointNum-1).forEach { i -> points[i] = points[i+1] }
-        points[pointNum] = y
+    fun addPoint(y: Array<Float>) {
+        (0..linenum-1).forEach {
+            row -> LogUtils.d("Addpoint",row.toString())
+               (0..pointNum-1).forEach { col -> points[row][col] = points[row][col+1] }
+                points[row][pointNum] = y[row]
+        }
+
         if(historyON){
-            prefs.edit{putString(viewid+"HIS",points.joinToString(" "))}
-            LogUtils.d(viewid+"HIS",prefs.getString(viewid+"HIS"," ").toString())
+            (0..linenum-1).forEach { prefs.edit{putString(viewid+"HIS$it",points[it].joinToString(" "))}}
+            LogUtils.d(viewid+"HIS0",prefs.getString(viewid+"HIS"," ").toString())
         }
         invalidate()
 //        LogUtils.d("Addpoint",y.toString())
@@ -137,13 +146,18 @@ class RealTimeCurveView(context: Context, attrs: AttributeSet?) : View(context, 
             if(i%2==0 && axisON) canvas.drawText("${i * 10}", originX - 40f, y + 8f, textPaint)
         }
 
-        if (points.size < 2) return
-        path.reset()
-        path.moveTo(originX, originY - points[0]/10 * yscale)
-        for (i in 0 until pointNum+1) {
-            path.lineTo(originX + i % (pointNum+1) * xscale, originY - points[i]/10 * yscale)
+//        if (points[0].sum() == 0f) return
+        (0..linenum-1).forEach {
+                    path[it].reset()
+                    path[it].moveTo(originX, originY - points[it][0]/10 * yscale)
+                    for (i in 0 until pointNum+1) {
+                        path[it].lineTo(originX + i % (pointNum+1) * xscale, originY - points[it][i]/10 * yscale)
+                    }
+                    paint.color = paintColor[it]
+                    canvas.drawPath(path[it], paint)
+
         }
-        canvas.drawPath(path, paint)
+
     }
 }
 
@@ -378,7 +392,7 @@ object MyFunction {
 
 //日志类文件
 object LogUtils {
-    private const val ENABLE_LOG = false
+    private const val ENABLE_LOG = true
 
     fun d(tag: String, msg: String) {
         if (ENABLE_LOG) Log.d(tag, msg)
