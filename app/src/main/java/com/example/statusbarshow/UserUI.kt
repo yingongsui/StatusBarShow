@@ -347,9 +347,9 @@ fun SettingItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             subtitle?.let {
-                Text(text = it, fontSize = 14.sp, color = Color.Gray)
+                Text(text = it, fontSize = 15.sp, color = Color.Gray,overflow = TextOverflow.Clip)
             }
         }
 
