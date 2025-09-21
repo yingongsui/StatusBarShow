@@ -377,7 +377,7 @@ fun TypeRatioButton(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 0.dp,end = 5.dp).width(50.dp)
+            modifier = Modifier.padding(start = 0.dp,end = 5.dp).width(40.dp)
         )
         contents.forEach {
             Box(modifier = Modifier.weight(1f),contentAlignment = Alignment.CenterStart) {

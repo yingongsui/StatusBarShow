@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeveloperBoard
 import androidx.compose.material.icons.filled.Extension
@@ -56,7 +58,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val prefs =  context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp), contentAlignment = Alignment.TopCenter) {
         var showDialog by remember { mutableStateOf(false) }
         var netspeedchecked by remember { mutableStateOf(prefs.getBoolean("NETSpState", false)) }
         var cpumemchecked by remember { mutableStateOf(prefs.getBoolean("CMNoState", false)) }
@@ -70,6 +72,7 @@ fun SettingsScreen() {
             modifier = Modifier
                 .padding(top=10.dp)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "Setting",
