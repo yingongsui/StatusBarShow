@@ -35,7 +35,7 @@ fun InformationScreen() {
         } }
     }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
                 text = "CPU Information",
