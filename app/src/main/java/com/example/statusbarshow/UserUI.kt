@@ -56,6 +56,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -380,13 +381,13 @@ fun TypeRatioButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(5.dp))
 
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 0.dp,end = 5.dp).width(40.dp)
+            modifier = Modifier.padding(0.dp).width(50.dp)
         )
         contents.forEach {
             Box(modifier = Modifier.weight(1f),contentAlignment = Alignment.CenterStart) {
@@ -399,6 +400,7 @@ fun TypeRatioButton(
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Start,
                     fontSize = 15.sp,
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier.padding(start = 50.dp).fillMaxWidth()
                 )
             }

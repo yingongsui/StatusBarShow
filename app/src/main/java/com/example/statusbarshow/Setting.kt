@@ -148,7 +148,7 @@ fun SettingsScreen() {
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 //核心在onOptionSelected = {cpuselected =it}，it就是组件中传入的参数：就是onClick = { onOptionSelected(it) }中的it
-                TypeRatioButton(icon = Icons.Default.Extension, title="CPU",contents = arrayOf("Normalized\nUsage","Usage"),selectedstate = cpuselected, onOptionSelected = {
+                TypeRatioButton(icon = Icons.Default.Extension, title="CPU",contents = arrayOf("Normalized Usage","Usage"),selectedstate = cpuselected, onOptionSelected = {
                     cpuselected = it
                     prefs.edit { putInt("CPUNotiType", it) }
                 })
