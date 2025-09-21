@@ -1,4 +1,4 @@
-package com.example.statusbarshow.ui
+package com.example.statusbarshow
 
 import android.content.Context
 import androidx.compose.foundation.layout.Box
@@ -37,7 +37,7 @@ fun HomeScreen() {
                     .padding(top = 10.dp)
 
             )
-            UsageGraph("CPU", 20, 1f,300,true,2,"C")
+            UsageGraph("CPU", 20, 1f, 300, true, 2, "C")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -46,7 +46,7 @@ fun HomeScreen() {
             ) {
                 (0..(corenum/2)).forEach {
                         Box(modifier = Modifier.weight(1f)){
-                        UsageGraph("CPU${it}", 10, 1f,100,false,1,"C$it")
+                            UsageGraph("CPU${it}", 10, 1f, 100, false, 1, "C$it")
                         }
                 }
 
@@ -60,7 +60,7 @@ fun HomeScreen() {
             ) {
                 ((corenum/2)+1..corenum).forEach {
                     Box(modifier = Modifier.weight(1f)){
-                        UsageGraph("CPU${it}", 10, 1f,100,false,1,"C$it")
+                        UsageGraph("CPU${it}", 10, 1f, 100, false, 1, "C$it")
                     }
                 }
 
@@ -76,7 +76,7 @@ fun HomeScreen() {
 
             )
 
-            UsageGraph("Memory", 20, 1f,300,true,1,"M")
+            UsageGraph("Memory", 20, 1f, 300, true, 1, "M")
         }
 
     }

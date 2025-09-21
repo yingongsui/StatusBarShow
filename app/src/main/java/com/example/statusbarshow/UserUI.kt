@@ -1,4 +1,4 @@
-package com.example.statusbarshow.ui
+package com.example.statusbarshow
 
 
 import android.content.Context.MODE_PRIVATE
@@ -35,7 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -65,10 +66,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.statusbarshow.LogUtils
-import com.example.statusbarshow.cpuusage
-import com.example.statusbarshow.memusage
-import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.ui.theme.BlueViolet
 import com.example.statusbarshow.ui.theme.DeepSkyBlue
 import com.example.statusbarshow.ui.theme.DodgerBlue
@@ -133,7 +130,7 @@ fun MainScreen() {
 
 
 @Composable
-fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON : Boolean, linenum :Int, type: String){
+fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON : Boolean, linenum :Int, type: String){
 
     val textMeasurer = rememberTextMeasurer()
     var historyON = false
@@ -141,9 +138,9 @@ fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON :
     val paintColor : Array<Color> = arrayOf(SteelBlue ,ForestGreen,BlueViolet)
 
     val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-    val path: Array< androidx.compose.ui.graphics.Path> = Array(linenum){  androidx.compose.ui.graphics.Path() }
+    val path: Array< Path> = Array(linenum){ Path() }
     var points : MutableList<Array<Float>> = MutableList(linenum){
-            row -> prefs.getString(Name+"HIS$row","0 ".repeat(pointNum+1).trimEnd())!!.split(" ").map { it.toFloat() }.toTypedArray()
+            row -> prefs.getString(name+"HIS$row","0 ".repeat(pointNum+1).trimEnd())!!.split(" ").map { it.toFloat() }.toTypedArray()
     }
 
     var linetype = 0
@@ -157,8 +154,8 @@ fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON :
         }
 
         if(historyON){
-            (0..linenum-1).forEach { prefs.edit{putString(Name+"HIS$it",points[it].joinToString(" "))}}
-            LogUtils.d(Name+"HIS0",prefs.getString(Name+"HIS"," ").toString())
+            (0..linenum-1).forEach { prefs.edit{putString(name+"HIS$it",points[it].joinToString(" "))}}
+            LogUtils.d(name+"HIS0",prefs.getString(name+"HIS"," ").toString())
         }
 //        LogUtils.d("Addpoint",y.toString())
     }
@@ -167,7 +164,7 @@ fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON :
     fun toggleHistory() {
         if (historyON) {
             Toast.makeText(context, "History OFF", Toast.LENGTH_SHORT).show()
-            (0..linenum - 1).forEach { prefs.edit { putString(Name + "HIS$it", "0 ".repeat(pointNum + 1).trimEnd()) }}
+            (0..linenum - 1).forEach { prefs.edit { putString(name + "HIS$it", "0 ".repeat(pointNum + 1).trimEnd()) }}
             points = MutableList(linenum) { row -> Array(pointNum + 1) { 0f }}
         } else {
             Toast.makeText(context,"History ON", Toast.LENGTH_SHORT).show()
@@ -239,7 +236,7 @@ fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON :
 
 
         //标明CPU名字或者标明%号
-        if (!axisON)  drawText(textMeasurer, Name, Offset(endX/10F*4F, originY/10F*4F), TextStyle(fontSize = (height/8).sp, color = Color.Gray))
+        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*4F, originY/10F*4F), TextStyle(fontSize = (height/8).sp, color = Color.Gray))
         else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/20),TextStyle(fontSize = 10.sp, color = Color.Gray))
 
 
@@ -302,7 +299,7 @@ fun UsageGraph(Name : String,pointNum:Int, width : Float ,height : Int, axisON :
             }else {
                 when (type) {
                     "C" -> addPoint(arrayOf(totalcpuusage[0].toFloat(),totalcpuusage[1].toFloat()))
-                    "M" -> addPoint(arrayOf(memusage.value.toFloat()))
+                    "M" -> addPoint(arrayOf(memusage.intValue.toFloat()))
                 }
             }
 
@@ -400,7 +397,7 @@ fun TypeRatioButton(
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Start,
                     fontSize = 15.sp,
-                    overflow = TextOverflow.Clip,
+                    overflow = TextOverflow.Clip,//单词换行模式
                     modifier = Modifier.padding(start = 50.dp).fillMaxWidth()
                 )
             }
@@ -416,7 +413,7 @@ fun ValueSliderBar(
     valueRange: ClosedFloatingPointRange<Float> = 500f..3000f,
     unit: String = ""
 ) {
-    var sliderWidthPx by remember { mutableStateOf(0) }// 获取slider宽度
+    var sliderWidthPx by remember { mutableIntStateOf(0) }// 获取slider宽度
 
     Box(modifier = modifier.fillMaxWidth()) {
         Column {

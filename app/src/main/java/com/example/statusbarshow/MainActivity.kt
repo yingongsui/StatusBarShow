@@ -16,7 +16,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.statusbarshow.service.CPUMEMNotiService
 import com.example.statusbarshow.service.NetService
-import com.example.statusbarshow.ui.MainScreen
 import com.example.statusbarshow.ui.theme.DodgerBlue
 
 class MainActivity : ComponentActivity() {

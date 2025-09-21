@@ -1,4 +1,4 @@
-package com.example.statusbarshow.ui
+package com.example.statusbarshow
 
 import android.content.Context
 import androidx.compose.foundation.layout.Box
@@ -24,7 +24,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import com.example.statusbarshow.MyFunction
 
 @Preview(showBackground = true)
 @Composable
@@ -54,15 +53,19 @@ fun InformationScreen() {
                 SettingItem(
                     icon = Icons.Default.Memory,
                     title = "CPU$term",
-                    subtitle = "%.2f".format(prefs.getLong("CPU${term}MaxFreq",0).toFloat()/1000f/1000f)
-                            + "GHz " + MyFunction.getCPUArch(prefs.getString("CPU$term","").toString()),
+                    subtitle = "%.2f".format(
+                        prefs.getLong("CPU${term}MaxFreq", 0).toFloat() / 1000f / 1000f
+                    )
+                            + "GHz " + MyFunction.getCPUArch(
+                        prefs.getString("CPU$term", "").toString()
+                    ),
                     hasSwitch = true,
                     switchState = cpudrawstate[term],
                     onSwitchChange = {
                         cpudrawstate[term] = it     //改变值触发重绘，it是Switch改变后的状态
                         prefs.edit { putBoolean("CPU${term}DrawState", it) }
-                                     },
-                    )
+                    },
+                )
             }
 
 
@@ -80,7 +83,10 @@ fun InformationScreen() {
             SettingItem(
                 icon = Icons.Default.Memory,
                 title = "Total Memory",
-                subtitle = "${MyFunction.getCPUArch(prefs.getString("TotalMemory","").toString()).toLong()/1000} MB",
+                subtitle = "${
+                    MyFunction.getCPUArch(prefs.getString("TotalMemory", "").toString())
+                        .toLong() / 1000
+                } MB",
                 onClick = { /* 跳转语言设置 */ }
             )
         }

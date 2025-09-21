@@ -5,25 +5,26 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.Log
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import java.io.BufferedReader
 import java.io.FileNotFoundException
 import java.io.FileReader
 import java.io.IOException
-import androidx.core.graphics.createBitmap
 
 //全局变量
 var samplingtime :Long = 1500 //ms
 
 var memstate = mutableStateListOf(0,0)    //(all,available)
-var memusage = mutableStateOf( 0)       //percentage
+var memusage = mutableIntStateOf( 0)       //percentage
 var cpuusage = mutableStateListOf<SnapshotStateList<Int>>()
 var totalcpuusage = mutableStateListOf(0,0)
-var netspeedRx = mutableStateOf( 0f)
-var netspeedTx = mutableStateOf( 0f)
+var netspeedRx = mutableFloatStateOf( 0f)
+var netspeedTx = mutableFloatStateOf( 0f)
 
 
 object MyFunction {
@@ -83,7 +84,7 @@ object MyFunction {
                     //是否需要在读取到足够信息后直接跳出？
                 }
             }
-            memusage.value =  100-memstate[1] * 100 / memstate[0]
+            memusage.intValue =  100-memstate[1] * 100 / memstate[0]
 
             memBuR.close()
         } catch (e: FileNotFoundException) {
