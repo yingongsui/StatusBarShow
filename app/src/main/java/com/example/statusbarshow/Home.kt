@@ -26,7 +26,7 @@ fun HomeScreen() {
     val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
 
-    Box(modifier = Modifier.fillMaxSize().padding(top=20.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             Text(
                 text = "CPU Usage",

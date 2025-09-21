@@ -36,7 +36,7 @@ fun InformationScreen() {
         } }
     }
 
-    Box(modifier = Modifier.fillMaxSize().padding(top=20.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Text(
                 text = "CPU Information",
