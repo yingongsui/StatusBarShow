@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -69,6 +70,7 @@ import com.example.statusbarshow.memusage
 import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.ui.theme.BlueViolet
 import com.example.statusbarshow.ui.theme.DeepSkyBlue
+import com.example.statusbarshow.ui.theme.DodgerBlue
 import com.example.statusbarshow.ui.theme.ForestGreen
 import com.example.statusbarshow.ui.theme.SteelBlue
 
@@ -103,7 +105,14 @@ fun MainScreen() {
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        }
+                        } ,
+                        colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        unselectedIconColor = Color.Gray,
+                        selectedTextColor = Color.White,
+                        indicatorColor = DodgerBlue.copy(alpha = 0.3f)
+                    )
+
                     )
                 }
             }
