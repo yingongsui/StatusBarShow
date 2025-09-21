@@ -58,7 +58,7 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val prefs =  context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
-    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
         var showDialog by remember { mutableStateOf(false) }
         var netspeedchecked by remember { mutableStateOf(prefs.getBoolean("NETSpState", false)) }
         var cpumemchecked by remember { mutableStateOf(prefs.getBoolean("CMNoState", false)) }

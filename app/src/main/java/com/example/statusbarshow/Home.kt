@@ -26,10 +26,10 @@ fun HomeScreen() {
     val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(top=20.dp), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             Text(
-                text = "CPU USAGE",
+                text = "CPU Usage",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -67,7 +67,7 @@ fun HomeScreen() {
             }
             HorizontalDivider(Modifier, thickness = 3.dp, DividerDefaults.color)
             Text(
-                text = "Memory USAGE",
+                text = "Memory Usage",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
