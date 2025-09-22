@@ -54,7 +54,7 @@ fun HomeScreen() {
                     .fillMaxWidth()
             ) {
                 (0..(corenum/2)).forEach {
-                        val name = "  CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
+                        val name = " CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
                         Box(modifier = Modifier.weight(1f)){
                             UsageGraph( name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
 
@@ -70,7 +70,7 @@ fun HomeScreen() {
                     .fillMaxWidth()
             ) {
                 ((corenum/2)+1..corenum).forEach {
-                    val name = "  CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
+                    val name = " CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
                     Box(modifier = Modifier.weight(1f)){
                         UsageGraph(name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
                     }

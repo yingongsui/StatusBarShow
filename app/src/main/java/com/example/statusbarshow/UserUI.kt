@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -185,14 +186,20 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
     Canvas(modifier = Modifier
         .fillMaxWidth(width)
-        .height(with(LocalDensity.current){height.toDp()})
+        .height(with(LocalDensity.current) { height.toDp() })
         .padding(10.dp)
         .pointerInput(Unit) {
             detectTapGestures(
                 onLongPress = {
                     toggleHistory()
                 },
-                onDoubleTap = { linetype = if(linetype==0){1} else{0} },
+                onDoubleTap = {
+                    linetype = if (linetype == 0) {
+                        1
+                    } else {
+                        0
+                    }
+                },
 
                 )
         }
@@ -245,8 +252,8 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
 
         //标明CPU名字或者标明%号
-        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray))
-        else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/20),TextStyle(fontSize = 10.sp, color = Color.Gray))
+        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray,fontFamily = FontFamily.Monospace))
+        else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/15),TextStyle(fontSize = 10.sp, color = Color.Gray))
 
 
         //  X轴刻度
@@ -393,7 +400,9 @@ fun TypeRatioButton(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(0.dp).width(50.dp)
+            modifier = Modifier
+                .padding(0.dp)
+                .width(50.dp)
         )
         contents.forEach {
             Box(modifier = Modifier.weight(1f),contentAlignment = Alignment.CenterStart) {
@@ -407,7 +416,9 @@ fun TypeRatioButton(
                     textAlign = TextAlign.Start,
                     fontSize = 15.sp,
                     overflow = TextOverflow.Clip,//单词换行模式
-                    modifier = Modifier.padding(start = 50.dp).fillMaxWidth()
+                    modifier = Modifier
+                        .padding(start = 50.dp)
+                        .fillMaxWidth()
                 )
             }
         }
@@ -438,9 +449,11 @@ fun ValueSliderBar(
                 value = value,
                 onValueChange = onValueChange,
                 valueRange = valueRange,
-                modifier = Modifier.fillMaxWidth().onGloballyPositioned { coordinates ->
-                    sliderWidthPx = coordinates.size.width
-                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        sliderWidthPx = coordinates.size.width
+                    },
                 steps = 4
             )
 
