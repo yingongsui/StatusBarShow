@@ -13,8 +13,13 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,9 +30,13 @@ fun HomeScreen() {
 
     val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
+    var columnWidth by remember { mutableStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).onGloballyPositioned { layoutCoordinates ->
+            columnWidth = layoutCoordinates.size.width // 单位是像素 px
+        }
+        ) {
             Text(
                 text = "CPU Usage",
                 fontSize = 25.sp,
@@ -37,7 +46,7 @@ fun HomeScreen() {
                     .padding(top = 10.dp)
 
             )
-            UsageGraph("CPU", 20, 1f, 300, true, 2, "C")
+            UsageGraph("CPU", 20, 1f, columnWidth/16*9, true, 2, "C")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -45,8 +54,10 @@ fun HomeScreen() {
                     .fillMaxWidth()
             ) {
                 (0..(corenum/2)).forEach {
+                        val name = "  CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz "
                         Box(modifier = Modifier.weight(1f)){
-                            UsageGraph("CPU${it}", 10, 1f, 100, false, 1, "C$it")
+                            UsageGraph( name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
+
                         }
                 }
 
@@ -59,8 +70,9 @@ fun HomeScreen() {
                     .fillMaxWidth()
             ) {
                 ((corenum/2)+1..corenum).forEach {
+                    val name = "  CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz "
                     Box(modifier = Modifier.weight(1f)){
-                        UsageGraph("CPU${it}", 10, 1f, 100, false, 1, "C$it")
+                        UsageGraph(name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
                     }
                 }
 
@@ -76,7 +88,7 @@ fun HomeScreen() {
 
             )
 
-            UsageGraph("Memory", 20, 1f, 300, true, 1, "M")
+            UsageGraph("Memory", 20, 1f, columnWidth/16*9, true, 1, "M")
         }
 
     }

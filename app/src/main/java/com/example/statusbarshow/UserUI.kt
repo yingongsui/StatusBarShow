@@ -1,6 +1,7 @@
 package com.example.statusbarshow
 
 
+import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
@@ -51,7 +52,9 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -85,33 +88,39 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun MainScreen() {
     val navController = rememberNavController()
     val items = listOf(Screen.Home, Screen.Profile, Screen.Settings)
+    val isSmallWindow = LocalConfiguration.current.screenHeightDp < 400 //用于小窗时隐藏导航栏
+
+
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-                items.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label) },
-                        selected = currentRoute == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+            if(!isSmallWindow) {
+                NavigationBar {
+                    val currentRoute =
+                        navController.currentBackStackEntryAsState().value?.destination?.route
+                    items.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = screen.label) },
+                            label = { Text(screen.label) },
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } ,
-                        colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        unselectedIconColor = Color.Gray,
-                        selectedTextColor = Color.White,
-                        indicatorColor = DodgerBlue.copy(alpha = 0.3f)
-                    )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                unselectedIconColor = Color.Gray,
+                                selectedTextColor = Color.White,
+                                indicatorColor = DodgerBlue.copy(alpha = 0.3f)
+                            )
 
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -129,6 +138,7 @@ fun MainScreen() {
 }
 
 
+@SuppressLint("RestrictedApi")
 @Composable
 fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON : Boolean, linenum :Int, type: String){
 
@@ -176,7 +186,7 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
     Canvas(modifier = Modifier
         .fillMaxWidth(width)
-        .height(height.dp)
+        .height(with(LocalDensity.current){height.toDp()})
         .padding(10.dp)
         .pointerInput(Unit) {
             detectTapGestures(
@@ -236,7 +246,7 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
 
         //标明CPU名字或者标明%号
-        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*4F, originY/10F*4F), TextStyle(fontSize = (height/8).sp, color = Color.Gray))
+        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray))
         else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/20),TextStyle(fontSize = 10.sp, color = Color.Gray))
 
 
