@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">StatusBarShow</string>
     <string name="title_activity_main">MainActivity</string>
-    <string name="appversion">2.0</string>
+    <string name="appversion">2.0.1</string>
 </resources>
