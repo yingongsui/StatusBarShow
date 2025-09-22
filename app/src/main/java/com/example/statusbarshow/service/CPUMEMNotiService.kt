@@ -34,7 +34,7 @@ class CPUMEMNotiService : Service() {
 
     override fun onCreate() {
 
-        val channel = NotificationChannel(channelId, "CPUMEM Channel", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(channelId, "CPUMEM Channel", NotificationManager.IMPORTANCE_MIN)
 
         //创建通知频道
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -118,6 +118,14 @@ class CPUMEMNotiService : Service() {
                             totalcpuusage[0] = cpuusage.map { it[0] }.average().toInt()
                             totalcpuusage[1] = cpuusage.map { it[1] }.average().toInt()
 
+//                            println(cpuusage.map { it[0] }.joinToString(separator = " | "))
+//                            println(totalcpuusage[0])
+//
+//                            println(cpuusage.map { it[1] }.joinToString(separator = " | "))
+//                            println(totalcpuusage[1])
+
+
+
                             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                             notificationManager.notify(
                                 1,
@@ -162,7 +170,7 @@ class CPUMEMNotiService : Service() {
                 .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))        //创建显示CPU的比特图
                 .setContentTitle("USAGE")
                 .setContentText("CPU : ${currentvalue[0]} | MEM : ${currentvalue[1]}")
-                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
                 .setAutoCancel(true)
                 .setGroup("SYS_STATE")
                 .setSortKey("CPUMEM")

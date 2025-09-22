@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -53,8 +54,10 @@ class MainActivity : ComponentActivity() {
 
         if( !prefs.getBoolean("PrefState",false)) MyFunction.getSysInfo(this) //传入 Activity 的 Context，实行该函数，获取核心信息
 
-        repeat(prefs.getInt("CPUCoreNumber",0)+1) {cpuusage.add(mutableStateListOf(0,0))  }  //确定cpu使用率应该使用的数组个数
+        //用repeat和add可能会导致重复添加
+//        repeat(prefs.getInt("CPUCoreNumber",0)+1) {cpuusage.add(mutableStateListOf(0,0))  }  //确定cpu使用率应该使用的数组个数
 
+        cpuusage = MutableList(prefs.getInt("CPUCoreNumber",0)+1){mutableStateListOf(0,0)}.toMutableStateList()
         //        启用服务
         val netintent = Intent(this, NetService::class.java)
         val cmnointent = Intent(this, CPUMEMNotiService::class.java)
