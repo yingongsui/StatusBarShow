@@ -42,7 +42,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-//import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
@@ -50,6 +49,7 @@ import com.example.statusbarshow.service.CPUMEMNotiService
 import com.example.statusbarshow.service.NetService
 import com.example.statusbarshow.ui.theme.DodgerBlue
 import androidx.core.net.toUri
+//import androidx.compose.ui.tooling.preview.Preview
 
 //@Preview(showBackground = true)
 @Composable
