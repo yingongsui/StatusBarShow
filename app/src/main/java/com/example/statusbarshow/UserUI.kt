@@ -252,7 +252,7 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
 
         //标明CPU名字或者标明%号
-        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray,fontFamily = FontFamily.Monospace))
+        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray.copy(alpha = 0.3f),fontFamily = FontFamily.Monospace))
         else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/15),TextStyle(fontSize = 10.sp, color = Color.Gray))
 
 
