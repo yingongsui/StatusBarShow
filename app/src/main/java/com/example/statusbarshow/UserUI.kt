@@ -424,6 +424,9 @@ fun TypeRatioButton(
         }
     }
 }
+
+
+
 @Composable
 fun ValueSliderBar(
     modifier: Modifier = Modifier,
@@ -461,7 +464,7 @@ fun ValueSliderBar(
                 modifier = Modifier
                     .offset {
                         val pxOffset= (-21.dp.toPx() + sliderWidthPx * (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).toInt()
-                        IntOffset(pxOffset, -150)
+                        IntOffset(pxOffset, 0)
                     } ,
                 contentAlignment = Alignment.Center
             ) {
