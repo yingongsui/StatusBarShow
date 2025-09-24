@@ -65,7 +65,9 @@ fun SettingsScreen() {
         var cpuselected by remember { mutableIntStateOf(prefs.getInt("CPUNotiType",0)) }
         var memselected by remember { mutableIntStateOf(prefs.getInt("MEMNotiType",1)) }
 
-        var slidervalue by remember { mutableLongStateOf(samplingtime) }
+        var netslidervalue by remember { mutableLongStateOf(netsamplingtime) }
+        var cmslidervalue by remember { mutableLongStateOf(cmsamplingtime) }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
@@ -112,6 +114,22 @@ fun SettingsScreen() {
                         if (it) context.startService(intent) else context.stopService(intent)
                     },
                 )
+                ValueSliderBar(
+                    title = "Sampling Rate(ms)",
+                    value = netslidervalue.toFloat(),
+                    onValueChange = {
+                        netslidervalue = it.toLong()
+                        netsamplingtime = it.toLong()
+                    },
+                    valueRange = 500f..3000f,
+                    unit = "ms",
+                    modifier = Modifier.padding(
+                        start = 24.dp,
+                        end = 24.dp,
+                        top = 24.dp,
+                        bottom = 10.dp
+                    )
+                )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 SettingItem(
                     icon = Icons.Default.DeveloperBoard,
@@ -126,6 +144,22 @@ fun SettingsScreen() {
                         val intent = Intent(context, CPUMEMNotiService::class.java)
                         if (it) context.startService(intent) else context.stopService(intent)
                     },
+                )
+                ValueSliderBar(
+                    title = "Sampling Rate(ms)",
+                    value = cmslidervalue.toFloat(),
+                    onValueChange = {
+                        cmslidervalue = it.toLong()
+                        cmsamplingtime = it.toLong()
+                    },
+                    valueRange = 500f..3000f,
+                    unit = "ms",
+                    modifier = Modifier.padding(
+                        start = 24.dp,
+                        end = 24.dp,
+                        top = 24.dp,
+                        bottom = 10.dp
+                    )
                 )
 
 
@@ -168,24 +202,6 @@ fun SettingsScreen() {
                         prefs.edit { putInt("MEMNotiType", it) }
                     })
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-
-                ValueSliderBar(
-                    title = "Sampling Rate(ms)",
-                    value = slidervalue.toFloat(),
-                    onValueChange = {
-                        slidervalue = it.toLong()
-                        samplingtime = it.toLong()
-                    },
-                    valueRange = 500f..3000f,
-                    unit = "ms",
-                    modifier = Modifier.padding(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = 24.dp,
-                        bottom = 10.dp
-                    )
-                )
-
 
 
             }

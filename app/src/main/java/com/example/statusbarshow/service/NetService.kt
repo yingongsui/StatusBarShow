@@ -17,7 +17,7 @@ import com.example.statusbarshow.LogUtils
 import com.example.statusbarshow.MyFunction
 import com.example.statusbarshow.netspeedRx
 import com.example.statusbarshow.netspeedTx
-import com.example.statusbarshow.samplingtime
+import com.example.statusbarshow.netsamplingtime
 
 class NetService : Service() {
 
@@ -29,7 +29,7 @@ class NetService : Service() {
     }
     override fun onCreate() {
         //通知频道设置
-        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_MIN)
+        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_LOW)
         //静音无震动
         channel.setSound(null, null)
         channel.enableVibration(false)
@@ -79,11 +79,11 @@ class NetService : Service() {
 
                             val lastRxBytes1 = TrafficStats.getTotalRxBytes()
                             val lastTxBytes1 = TrafficStats.getTotalTxBytes()
-                            Thread.sleep(samplingtime)
+                            Thread.sleep(netsamplingtime)
                             val lastRxBytes2 = TrafficStats.getTotalRxBytes()
                             val lastTxBytes2 = TrafficStats.getTotalTxBytes()
-                            netspeedRx.value = (lastRxBytes2-lastRxBytes1)/samplingtime*1000f/1024
-                            netspeedTx.value = (lastTxBytes2-lastTxBytes1)/samplingtime*1000f/1024
+                            netspeedRx.value = (lastRxBytes2-lastRxBytes1)/netsamplingtime*1000f/1024
+                            netspeedTx.value = (lastTxBytes2-lastTxBytes1)/netsamplingtime*1000f/1024
                             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
                             if((netspeedRx.value+netspeedTx.value).toInt() > 1000)
@@ -125,7 +125,7 @@ class NetService : Service() {
                 .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))
                 .setContentTitle("NETWORK")
                 .setContentText("NETWORK SPEED : ${currentvalue[0]} ${currentvalue[1]}")
-                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setAutoCancel(true)
                 .setGroupSummary(false)
                 .setGroup("NET_STATE")

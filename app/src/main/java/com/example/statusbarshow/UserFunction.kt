@@ -17,7 +17,8 @@ import java.io.FileReader
 import java.io.IOException
 
 //全局变量
-var samplingtime :Long = 1500 //ms
+var netsamplingtime :Long = 1000 //ms
+var cmsamplingtime :Long = 1500 //ms
 
 var memstate = mutableStateListOf(0,0)    //(all,available)
 var memusage = mutableIntStateOf( 0)       //percentage

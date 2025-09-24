@@ -16,7 +16,7 @@ import androidx.core.graphics.drawable.IconCompat
 import com.example.statusbarshow.LogUtils
 import com.example.statusbarshow.MyFunction
 import com.example.statusbarshow.cpuusage
-import com.example.statusbarshow.samplingtime
+import com.example.statusbarshow.cmsamplingtime
 import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.memstate
 
@@ -97,7 +97,7 @@ class CPUMEMNotiService : Service() {
                             allcputime1state.indices.forEach { i ->
                                 allcputime1state[i] = MyFunction.readCpuStatus(i)
                             }
-                            Thread.sleep(samplingtime)
+                            Thread.sleep(cmsamplingtime)
                             //时刻2数据
                             allcputime2state.indices.forEach { i ->
                                 allcputime2state[i] = MyFunction.readCpuStatus(i)
