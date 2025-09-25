@@ -1,6 +1,10 @@
 package com.example.statusbarshow
+import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -17,6 +21,7 @@ import java.io.FileReader
 import java.io.IOException
 
 //全局变量
+var screenstate = true
 var netsamplingtime :Long = 1000 //ms
 var cmsamplingtime :Long = 1500 //ms
 
@@ -27,6 +32,51 @@ var totalcpuusage = mutableStateListOf(0,0)
 var netspeedRx = mutableFloatStateOf( 0f)
 var netspeedTx = mutableFloatStateOf( 0f)
 
+var CPUNotiType = 0
+var MEMNotiType = 1
+
+var CMNotiState = false
+var NETNotiState = false
+
+
+//监听屏幕开启关闭
+class ScreenStateApp : Application() {
+
+    private lateinit var screenStateReceiver: BroadcastReceiver
+
+    override fun onCreate() {
+        super.onCreate()
+
+        //注册广播接收器
+        screenStateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_ON -> {
+                        screenstate  = true
+                        LogUtils.d("ScreenStateReceiver", "Screen ON")
+                    }
+                    Intent.ACTION_SCREEN_OFF -> {
+                        screenstate  = false
+                        LogUtils.d("ScreenStateReceiver", "Screen OFF")
+                    }
+                }
+            }
+        }
+        //监听广播接收器
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(screenStateReceiver, filter)
+        LogUtils.d("ScreenStateApp", "Screen state receiver registered.")
+    }
+
+    override fun onTerminate() { // 注意：onTerminate 不一定总是在真机上被调用
+        super.onTerminate()
+        unregisterReceiver(screenStateReceiver)
+        LogUtils.d("ScreenStateApp", "Screen state receiver unregistered.")
+    }
+}
 
 object MyFunction {
     //创建通知栏数字图像

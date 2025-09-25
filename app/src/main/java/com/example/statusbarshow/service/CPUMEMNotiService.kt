@@ -4,26 +4,29 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.IBinder
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
-import androidx.core.content.edit
 import androidx.core.graphics.drawable.IconCompat
+import com.example.statusbarshow.CMNotiState
+import com.example.statusbarshow.CPUNotiType
 import com.example.statusbarshow.LogUtils
+import com.example.statusbarshow.MEMNotiType
 import com.example.statusbarshow.MyFunction
-import com.example.statusbarshow.cpuusage
 import com.example.statusbarshow.cmsamplingtime
+import com.example.statusbarshow.cpuusage
 import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.memstate
+import com.example.statusbarshow.screenstate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 class CPUMEMNotiService : Service() {
-
-    private lateinit var screenReceiver: BroadcastReceiver  //用于监听屏幕是否开启
 
     //通知频道设置
     val channelId = "cpumem_channel"
@@ -47,48 +50,26 @@ class CPUMEMNotiService : Service() {
 
         //启用通知
         startForeground(1, updateNotification(arrayOf("--%","--G" )))
-        //注册广播接收器
-        screenReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
-
-                when (intent?.action) {
-                    Intent.ACTION_SCREEN_OFF -> {
-                        prefs.edit { putBoolean("ScreenState", false) }
-                        LogUtils.d("BroadcastService", "OFF")
-                    }
-                    Intent.ACTION_SCREEN_ON -> {
-                        prefs.edit { putBoolean("ScreenState", true) }
-                        LogUtils.d("BroadcastService", "ON")
-                    }
-                }
-            }
-        }
-
-        //监听广播接收器
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON) // 可选：监听屏幕亮起
-        }
-        registerReceiver(screenReceiver, filter)
 
     }
 
-    private var monitorThread: Thread? = null
+    private val monitorserviceJob = Job()
+    private val monitorserviceScope = CoroutineScope(Dispatchers.IO + monitorserviceJob)
+    private var monitorJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
         val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
         val corenumber : Int = prefs.getInt("CPUCoreNumber",0)
 
-        if (monitorThread?.isAlive != true) {       //防止跳转到其他界面时反复创建线程
+        if (monitorJob?.isActive != true) {       //防止跳转到其他界面时反复创建线程
             val allcputime1state : Array<Array<Long>> = Array(corenumber+1) { Array(3) { 0L } }
             val allcputime2state : Array<Array<Long>> = Array(corenumber+1) { Array(3) { 0L } }
 
-            monitorThread = Thread {
+            monitorJob = monitorserviceScope.launch {
                 try {
-                    while (prefs.getBoolean("CMNoState", false)) {
-                        if(prefs.getBoolean("ScreenState", true)) {
+                    while (CMNotiState) {
+                        if(screenstate) {
 
                             LogUtils.d("CPUMEMService", "Running")
                             //时刻1数据
@@ -97,7 +78,7 @@ class CPUMEMNotiService : Service() {
                             allcputime1state.indices.forEach { i ->
                                 allcputime1state[i] = MyFunction.readCpuStatus(i)
                             }
-                            Thread.sleep(cmsamplingtime)
+                            delay(cmsamplingtime)
                             //时刻2数据
                             allcputime2state.indices.forEach { i ->
                                 allcputime2state[i] = MyFunction.readCpuStatus(i)
@@ -131,8 +112,8 @@ class CPUMEMNotiService : Service() {
                                 1,
                                 updateNotification(
                                     arrayOf(
-                                        "${totalcpuusage[prefs.getInt("CPUNotiType",0)]}%",
-                                        "${"%.1f".format(memstate[prefs.getInt("MEMNotiType",1)].toFloat() / 1024 / 1024)}G"
+                                        "${totalcpuusage[CPUNotiType]}%",
+                                        "${"%.1f".format(memstate[MEMNotiType].toFloat() / 1024 / 1024)}G"
                                     )
                                 )
                             )
@@ -140,26 +121,22 @@ class CPUMEMNotiService : Service() {
 
                         }
                         else{
-                            Thread.sleep(1000)
+                            delay(cmsamplingtime)
                         }
                     }
                 } catch (_: InterruptedException) {
                     LogUtils.d("CPUMEMNotiService", "Catch Exception >> End Thread")
                 }//捕获异常，防止导致服务崩溃。
-                stopSelf() //必须加这个，防止服务重启
             }
 
-            monitorThread?.start()
         }
         return START_STICKY
 
     }
 
     override fun onDestroy() {
-        monitorThread?.interrupt()
-        monitorThread = null
+        monitorserviceJob.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
-        unregisterReceiver(screenReceiver)
         LogUtils.d("CPUMEMNotiService", "Stop Service")
         super.onDestroy()
 

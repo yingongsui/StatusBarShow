@@ -2,6 +2,7 @@ package com.example.statusbarshow
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,15 +59,17 @@ fun SettingsScreen() {
     val context = LocalContext.current
     val prefs =  context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
-    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
-        var showDialog by remember { mutableStateOf(false) }
-        var netspeedchecked by remember { mutableStateOf(prefs.getBoolean("NETSpState", false)) }
-        var cpumemchecked by remember { mutableStateOf(prefs.getBoolean("CMNoState", false)) }
-        var cpuselected by remember { mutableIntStateOf(prefs.getInt("CPUNotiType",0)) }
-        var memselected by remember { mutableIntStateOf(prefs.getInt("MEMNotiType",1)) }
+    var showDialog by remember { mutableStateOf(false) }
+    var netspeedchecked by remember { mutableStateOf(NETNotiState) }
+    var cpumemchecked by remember { mutableStateOf(CMNotiState) }
 
-        var netslidervalue by remember { mutableLongStateOf(netsamplingtime) }
-        var cmslidervalue by remember { mutableLongStateOf(cmsamplingtime) }
+    var cpuselected by remember { mutableIntStateOf(CPUNotiType) }
+    var memselected by remember { mutableIntStateOf(MEMNotiType) }
+
+    var netslidervalue by remember { mutableLongStateOf(netsamplingtime) }
+    var cmslidervalue by remember { mutableLongStateOf(cmsamplingtime) }
+
+    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -109,17 +112,24 @@ fun SettingsScreen() {
                     switchState = netspeedchecked,
                     onSwitchChange = {
                         netspeedchecked = it
-                        prefs.edit { putBoolean("NETSpState", it) }   //记录控件状态到实体文件
+                        NETNotiState = it
+                        prefs.edit { putBoolean("NETNotiState", it) }   //记录控件状态到实体文件
                         val intent = Intent(context, NetService::class.java)
-                        if (it) context.startService(intent) else context.stopService(intent)
+                        when(it){
+                            true -> {context.startForegroundService(intent)
+                                    Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()}
+
+                            false -> {context.stopService(intent)
+                                    Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show()} }
                     },
                 )
                 ValueSliderBar(
-                    title = "Sampling Rate(ms)",
+                    title = "Sampling Rate",
                     value = netslidervalue.toFloat(),
                     onValueChange = {
                         netslidervalue = it.toLong()
-                        netsamplingtime = it.toLong()
+                        netsamplingtime = netslidervalue
+                        prefs.edit { putLong("NETSamplingTime", netslidervalue) }
                     },
                     valueRange = 500f..3000f,
                     unit = "ms",
@@ -140,17 +150,24 @@ fun SettingsScreen() {
                     switchState = cpumemchecked,
                     onSwitchChange = {
                         cpumemchecked = it
-                        prefs.edit { putBoolean("CMNoState", it) }   //记录控件状态到实体文件
+                        CMNotiState = it
+                        prefs.edit { putBoolean("CMNotiState", it) }   //记录控件状态到实体文件
                         val intent = Intent(context, CPUMEMNotiService::class.java)
-                        if (it) context.startService(intent) else context.stopService(intent)
+                        when(it){
+                            true -> {context.startForegroundService(intent)
+                                    Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()}
+                            false -> {context.stopService(intent)
+                                Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show() }
+                        }
                     },
                 )
                 ValueSliderBar(
-                    title = "Sampling Rate(ms)",
+                    title = "Sampling Rate",
                     value = cmslidervalue.toFloat(),
                     onValueChange = {
                         cmslidervalue = it.toLong()
-                        cmsamplingtime = it.toLong()
+                        cmsamplingtime = cmslidervalue
+                        prefs.edit { putLong("CMSamplingTime", cmslidervalue) }
                     },
                     valueRange = 500f..3000f,
                     unit = "ms",
@@ -190,6 +207,7 @@ fun SettingsScreen() {
                     onOptionSelected = {
                         cpuselected = it
                         prefs.edit { putInt("CPUNotiType", it) }
+                        CPUNotiType = it
                     })
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 TypeRatioButton(
@@ -200,6 +218,7 @@ fun SettingsScreen() {
                     onOptionSelected = {
                         memselected = it
                         prefs.edit { putInt("MEMNotiType", it) }
+                        MEMNotiType = it
                     })
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 

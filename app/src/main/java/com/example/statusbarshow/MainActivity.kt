@@ -57,15 +57,24 @@ class MainActivity : ComponentActivity() {
         //用repeat和add可能会导致重复添加
 //        repeat(prefs.getInt("CPUCoreNumber",0)+1) {cpuusage.add(mutableStateListOf(0,0))  }  //确定cpu使用率应该使用的数组个数
 
+        netsamplingtime = prefs.getLong("NETSamplingTime",1000)
+        cmsamplingtime = prefs.getLong("CMSamplingTime",1500)
         cpuusage = MutableList(prefs.getInt("CPUCoreNumber",0)+1){mutableStateListOf(0,0)}.toMutableStateList()
+        CPUNotiType = prefs.getInt("CPUNotiType",0)
+        MEMNotiType = prefs.getInt("MEMNotiType",1)
+        CMNotiState = prefs.getBoolean("CMNotiState",false)
+        NETNotiState = prefs.getBoolean("NETNotiState",false)
+
         //        启用服务
         val netintent = Intent(this, NetService::class.java)
         val cmnointent = Intent(this, CPUMEMNotiService::class.java)
 
 
         //如果前台服务，必须6秒内调用startForeground来启用通知；前台服务无法在后台启动，会导致广播失效，系统资源浪费
-        if (prefs.getBoolean("NETSpState", false)) this.startForegroundService(netintent) else this.stopService(netintent)
-        if (prefs.getBoolean("CMNoState", false)) this.startForegroundService(cmnointent) else this.stopService(cmnointent)
+        if (NETNotiState) this.startForegroundService(netintent) else this.stopService(netintent)
+        if (CMNotiState ) this.startForegroundService(cmnointent) else this.stopService(cmnointent)
+
+
         }
     }
 
