@@ -30,11 +30,11 @@ import androidx.core.content.edit
 fun InformationScreen() {
     val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     //*号意味着逐个添加，没有*则是整体添加，会变为数组的数组
-    val cpudrawstate = remember {
-        mutableStateListOf<Boolean>().apply { repeat(prefs.getInt("CPUCoreNumber",0)+1) {
-            add(prefs.getBoolean("CPU${it}DrawState", true))
-        } }
-    }
+//    val cpudrawstate = remember {
+//        mutableStateListOf<Boolean>().apply { repeat(prefs.getInt("CPUCoreNumber",0)+1) {
+//            add(prefs.getBoolean("CPU${it}DrawState", true))
+//        } }
+//    }
 
     Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -58,9 +58,9 @@ fun InformationScreen() {
                         prefs.getString("CPU$term", "").toString()
                     ),
                     hasSwitch = true,
-                    switchState = cpudrawstate[term],
+                    switchState = CPUDrawState[term],
                     onSwitchChange = {
-                        cpudrawstate[term] = it     //改变值触发重绘，it是Switch改变后的状态
+                        CPUDrawState[term] = it     //改变值触发重绘，it是Switch改变后的状态
                         prefs.edit { putBoolean("CPU${term}DrawState", it) }
                     },
                 )

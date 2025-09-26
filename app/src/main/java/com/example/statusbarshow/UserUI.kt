@@ -310,7 +310,7 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
 
         drawIntoCanvas { canvas ->
             val number = type.filter { it.isDigit() }
-            if(number.isNotEmpty() && prefs.getBoolean("CPU${number}DrawState", true)) {
+            if(number.isNotEmpty() && CPUDrawState[number.toInt()]) {
                 addPoint(arrayOf(cpuusage[number.toInt()][linetype].toFloat()))
             }else {
                 when (type) {

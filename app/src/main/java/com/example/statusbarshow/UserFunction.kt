@@ -24,6 +24,7 @@ import java.io.IOException
 var screenstate = true
 var netsamplingtime :Long = 1000 //ms
 var cmsamplingtime :Long = 1500 //ms
+var cpucorecount :Int =0
 
 var memstate = mutableStateListOf(0,0)    //(all,available)
 var memusage = mutableIntStateOf( 0)       //percentage
@@ -32,11 +33,13 @@ var totalcpuusage = mutableStateListOf(0,0)
 var netspeedRx = mutableFloatStateOf( 0f)
 var netspeedTx = mutableFloatStateOf( 0f)
 
+
 var CPUNotiType = 0
 var MEMNotiType = 1
 
 var CMNotiState = false
 var NETNotiState = false
+var CPUDrawState = mutableStateListOf<Boolean>()
 
 
 //监听屏幕开启关闭
@@ -192,45 +195,44 @@ object MyFunction {
         val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
         prefs.edit{putBoolean("PrefState",true)}
 
-        var corecount  =0
 
         //获取CPU信息
         try {
             val cpuInfo = FileReader("/proc/cpuinfo")
             val cpuBuR = BufferedReader(cpuInfo)
+            var cucore = 0
             cpuBuR.forEachLine { line ->
                 if(line.contains("processor")){
-                    val cucore= Regex("\\d+").find(line)?.value?.toInt() ?: 0
-                    corecount = maxOf(corecount, cucore)
-                    prefs.edit { putString("CPU$corecount", "") }
+                    cucore= Regex("\\d+").find(line)?.value?.toInt() ?: 0
+                    cpucorecount = maxOf(cpucorecount, cucore)
+                    prefs.edit { putString("CPU$cucore", "") }
                     //获取最大频率
                     val maxFreqPath = "/sys/devices/system/cpu/cpu$cucore/cpufreq/cpuinfo_max_freq"
                     try {
                         val reader = BufferedReader(FileReader(maxFreqPath))
-                        prefs.edit { putLong("CPU${corecount}MaxFreq", reader.readLine().toLong()) }
+                        prefs.edit { putLong("CPU${cucore}MaxFreq", reader.readLine().toLong()) }
                         reader.close()
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-
                 }else if(line.contains("implementer")){
-                    prefs.edit { putString("CPU$corecount", prefs.getString("CPU$corecount", "")+line.split(":")[1]+";") }
-                //
+                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
+                //获取各核信息
                 }else if(line.contains("architecture")){
-                    prefs.edit { putString("CPU$corecount", prefs.getString("CPU$corecount", "")+line.split(":")[1]+";") }
+                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
                     //
                 }else if(line.contains("variant")){
-                    prefs.edit { putString("CPU$corecount", prefs.getString("CPU$corecount", "")+line.split(":")[1]+";") }
+                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
                     //
                 }else if(line.contains("part")){
-                    prefs.edit { putString("CPU$corecount", prefs.getString("CPU$corecount", "")+line.split(":")[1]+";") }
+                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
                     //
                 }else{
                     //pass
                     //是否需要在读取到足够信息后直接跳出？
                 }
             }
-            prefs.edit { putInt("CPUCoreNumber", corecount ) }
+            prefs.edit { putInt("CPUCoreNumber", cpucorecount ) }
             cpuBuR.close()
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
@@ -298,7 +300,7 @@ object MyFunction {
 
 //日志类文件
 object LogUtils {
-    private const val ENABLE_LOG = false
+    private const val ENABLE_LOG = true
 
     fun d(tag: String, msg: String) {
         if (ENABLE_LOG) Log.d(tag, msg)

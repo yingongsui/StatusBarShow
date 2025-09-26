@@ -57,13 +57,19 @@ class MainActivity : ComponentActivity() {
         //用repeat和add可能会导致重复添加
 //        repeat(prefs.getInt("CPUCoreNumber",0)+1) {cpuusage.add(mutableStateListOf(0,0))  }  //确定cpu使用率应该使用的数组个数
 
+        cpucorecount = prefs.getInt("CPUCoreNumber",0)
+
         netsamplingtime = prefs.getLong("NETSamplingTime",1000)
         cmsamplingtime = prefs.getLong("CMSamplingTime",1500)
-        cpuusage = MutableList(prefs.getInt("CPUCoreNumber",0)+1){mutableStateListOf(0,0)}.toMutableStateList()
+        cpuusage = MutableList(cpucorecount+1){mutableStateListOf(0,0)}.toMutableStateList()
         CPUNotiType = prefs.getInt("CPUNotiType",0)
         MEMNotiType = prefs.getInt("MEMNotiType",1)
         CMNotiState = prefs.getBoolean("CMNotiState",false)
         NETNotiState = prefs.getBoolean("NETNotiState",false)
+        CPUDrawState = MutableList(cpucorecount+1){
+            index -> prefs.getBoolean("CPU${index}DrawState", true)
+        }.toMutableStateList()
+
 
         //        启用服务
         val netintent = Intent(this, NetService::class.java)
