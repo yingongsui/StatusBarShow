@@ -351,6 +351,7 @@ fun SettingItem(
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun ColorPickerRow(
     title: String,
@@ -373,7 +374,7 @@ fun ColorPickerRow(
             fontFamily = FontFamily.Monospace,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(90.dp)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
         )
         Row(
             modifier = Modifier.weight(1f),
@@ -399,6 +400,7 @@ fun ColorPickerRow(
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun ThemeSwatchRow(
     title: String,
@@ -425,7 +427,7 @@ fun ThemeSwatchRow(
             fontFamily = FontFamily.Monospace,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(90.dp)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
         )
         Row(
             modifier = Modifier.weight(1f),
@@ -464,6 +466,7 @@ fun ThemeSwatchRow(
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun OptionSwatchRow(
     icon: ImageVector,
@@ -493,7 +496,7 @@ fun OptionSwatchRow(
             fontFamily = FontFamily.Monospace,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(90.dp)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
         )
         Row(
             modifier = Modifier.weight(1f),
