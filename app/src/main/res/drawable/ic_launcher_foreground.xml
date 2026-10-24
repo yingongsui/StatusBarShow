@@ -8,9 +8,6 @@
       android:translateX="-51.2"
       android:translateY="-51.2">
     <path
-        android:pathData="M100,0L924,0A100,100 0,0 1,1024 100L1024,924A100,100 0,0 1,924 1024L100,1024A100,100 0,0 1,0 924L0,100A100,100 0,0 1,100 0z"
-        android:fillColor="#000000"/>
-    <path
         android:fillColor="#FF000000"
         android:pathData="M0,128L1024,128"
         android:strokeAlpha="0.1"
