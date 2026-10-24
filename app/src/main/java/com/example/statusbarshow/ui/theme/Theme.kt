@@ -10,6 +10,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -52,7 +56,11 @@ fun StatusBarShowTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+        typography = Typography
+    ) {
+        ProvideTextStyle(
+            value = TextStyle(fontFamily = FontFamily.Monospace),
+            content = content
+        )
+    }
 }

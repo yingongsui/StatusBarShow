@@ -26,6 +26,7 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -83,6 +84,7 @@ fun SettingsScreen() {
                 text = "Setting",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
                 modifier = Modifier.fillMaxWidth()
 
             )
@@ -100,7 +102,8 @@ fun SettingsScreen() {
                     text = "Monitor Setting",
                     modifier = Modifier.padding(16.dp),
                     fontSize = 30.sp ,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 SettingItem(
@@ -195,14 +198,15 @@ fun SettingsScreen() {
                     text = "Notification Setting",
                     modifier = Modifier.padding(16.dp),
                     fontSize = 30.sp ,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 //核心在onOptionSelected = {cpuselected =it}，it就是组件中传入的参数：就是onClick = { onOptionSelected(it) }中的it
                 TypeRatioButton(
                     icon = Icons.Default.Extension,
                     title = "CPU",
-                    contents = arrayOf("Normalized Usage", "Usage"),
+                    contents = arrayOf("Norm-Usage", "Usage"),
                     selectedstate = cpuselected,
                     onOptionSelected = {
                         cpuselected = it
@@ -213,7 +217,7 @@ fun SettingsScreen() {
                 TypeRatioButton(
                     icon = Icons.Default.Extension,
                     title = "MEM",
-                    contents = arrayOf("Used", "Available"),
+                    contents = arrayOf("Available", "Used"),
                     selectedstate = memselected,
                     onOptionSelected = {
                         memselected = it
@@ -240,44 +244,87 @@ fun SettingsScreen() {
                     text = "About",
                     modifier = Modifier.padding(16.dp),
                     fontSize = 30.sp ,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
                 )
 
             }
             if (showDialog) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },
-                    title = { Text("StatusBarShow") },
+                    title = {
+                        Text(
+                            text = "StatusBarShow",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    },
                     text = {
-                        Column {
-                            Text(//设置文本格式
-                                text = buildAnnotatedString {
-                                    withStyle(style = SpanStyle(color = Color.White,fontWeight = FontWeight.Bold,fontSize = 17.sp)) {
-                                        append("Version:" + context.getString(R.string.appversion) )
-                                    }
-                                }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = "Version " + context.getString(R.string.appversion),
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            Row(modifier = Modifier.padding(top=8.dp)){Text("View source code on ")
-                                Text(//设置文本格式
-                                    text = buildAnnotatedString { withStyle(style = SpanStyle(color = DodgerBlue, fontStyle = FontStyle.Italic, fontSize = 15.sp, textDecoration = TextDecoration.Underline))
-                                    { append("github") } },
+                            Text(
+                                text = "A lightweight system monitor providing real-time CPU, Memory, and Network speed statistics right in your status bar.",
+                                fontSize = 14.sp,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Text(
+                                text = "Quick Tips:",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            Text(
+                                text = "• Long press graphs: Toggle history\n• Double tap graphs: Switch metric lines",
+                                fontSize = 13.sp,
+                                color = Color.Gray,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Source code: ",
+                                    fontSize = 14.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = buildAnnotatedString {
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = DodgerBlue,
+                                                fontStyle = FontStyle.Italic,
+                                                fontSize = 14.sp,
+                                                textDecoration = TextDecoration.Underline
+                                            )
+                                        ) {
+                                            append("GitHub")
+                                        }
+                                    },
                                     modifier = Modifier.clickable {
                                         "https://github.com/yingongsui/StatusBarShow".let {
                                             val intent = Intent(Intent.ACTION_VIEW, it.toUri())
                                             context.startActivity(intent)
                                         }
-
                                     }
                                 )
-                                Text(".")
                             }
-
-
                         }
                     },
                     confirmButton = {
                         TextButton(onClick = { showDialog = false }) {
-                            Text("Close")
+                            Text("Close", fontFamily = FontFamily.Monospace)
                         }
                     }
                 )

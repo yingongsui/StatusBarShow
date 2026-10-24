@@ -1,4 +1,5 @@
 package com.example.statusbarshow
+
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,7 +8,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.util.Log
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -15,24 +21,20 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
-import java.io.BufferedReader
-import java.io.FileNotFoundException
-import java.io.FileReader
-import java.io.IOException
+import java.io.File
 
-//全局变量
+// 全局变量 - 建议：未来迁移到 ViewModel 或 Repository 中
 var screenstate = true
-var netsamplingtime :Long = 1000 //ms
-var cmsamplingtime :Long = 1500 //ms
-var cpucorecount :Int =0
+var netsamplingtime: Long = 1000
+var cmsamplingtime: Long = 1500
+var cpucorecount: Int = 0
 
-var memstate = mutableStateListOf(0,0)    //(all,available)
-var memusage = mutableIntStateOf( 0)       //percentage
+var memstate = mutableStateListOf(0, 0)
+var memusage = mutableIntStateOf(0)
 var cpuusage = mutableStateListOf<SnapshotStateList<Int>>()
-var totalcpuusage = mutableStateListOf(0,0)
-var netspeedRx = mutableFloatStateOf( 0f)
-var netspeedTx = mutableFloatStateOf( 0f)
-
+var totalcpuusage = mutableStateListOf(0, 0)
+var netspeedRx = mutableFloatStateOf(0f)
+var netspeedTx = mutableFloatStateOf(0f)
 
 var CPUNotiType = 0
 var MEMNotiType = 1
@@ -41,227 +43,220 @@ var CMNotiState = false
 var NETNotiState = false
 var CPUDrawState = mutableStateListOf<Boolean>()
 
-
-//监听屏幕开启关闭
+// 监听屏幕状态
 class ScreenStateApp : Application() {
-
     private lateinit var screenStateReceiver: BroadcastReceiver
 
     override fun onCreate() {
         super.onCreate()
-
-        //注册广播接收器
         screenStateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                when (intent?.action) {
-                    Intent.ACTION_SCREEN_ON -> {
-                        screenstate  = true
-                        LogUtils.d("ScreenStateReceiver", "Screen ON")
-                    }
-                    Intent.ACTION_SCREEN_OFF -> {
-                        screenstate  = false
-                        LogUtils.d("ScreenStateReceiver", "Screen OFF")
-                    }
+                screenstate = when (intent?.action) {
+                    Intent.ACTION_SCREEN_ON -> true
+                    Intent.ACTION_SCREEN_OFF -> false
+                    else -> screenstate
                 }
+                LogUtils.d("ScreenStateReceiver", "Screen state changed: $screenstate")
             }
         }
-        //监听广播接收器
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         }
         registerReceiver(screenStateReceiver, filter)
-        LogUtils.d("ScreenStateApp", "Screen state receiver registered.")
     }
 
-    override fun onTerminate() { // 注意：onTerminate 不一定总是在真机上被调用
-        super.onTerminate()
-        unregisterReceiver(screenStateReceiver)
-        LogUtils.d("ScreenStateApp", "Screen state receiver unregistered.")
-    }
+    // 注意：onTerminate 在真机几乎不触发，建议将注销逻辑放入 Service 的 onDestroy
 }
 
 object MyFunction {
-    //创建通知栏数字图像
-    fun createBitmapFromString(stateValue: Array<String>, size : Float) : Bitmap {
 
-        val height = 400
-
-        val paint1 = Paint()
-        paint1.isAntiAlias = true
-        paint1.textSize = size * height   //字体高度，F表示Float类型
-        paint1.textAlign = Paint.Align.CENTER
-        paint1.isFakeBoldText = true
-//        paint1.typeface = Typeface.MONOSPACE
-
-
-        val paint2 = Paint()
-        paint2.isAntiAlias = true
-        paint2.textSize = height*(1.0f-size)   //字体高度，F表示Float类型
-        paint2.textAlign = Paint.Align.CENTER
-        paint2.isFakeBoldText = true
-
-//        val width = when(stateValue[0].length){
-//            4 -> paint1.measureText("100%").toInt()
-//            else -> paint1.measureText("99%").toInt()
-//        }
-
-//        val width = if(stateValue[0].length!=4) paint1.measureText("99%").toInt() else paint1.measureText("100%").toInt()
-
-        val width = paint1.measureText("99%").toInt()
-        val bitmap = createBitmap(width+2, height,Bitmap.Config.ARGB_8888)
-
-        val canvas = Canvas(bitmap)
-        //创建画布
-        canvas.drawText(if(stateValue[0].length<4) stateValue[0] else "1.00" , width / 2F, size * height, paint1)
-        canvas.drawText(stateValue[1], width / 2F, height*1.0f, paint2) //在横轴居中，纵轴偏移的位置创建，纵轴是向下的
-
-        return bitmap
-
-
+    // 优化：复用 Paint 对象减少 GC 压力
+    private val textPaint = Paint().apply {
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
     }
 
-    //获取内存信息
-    fun readMemStatus():Array<Int>{
+    private val subTextPaint = Paint().apply {
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
 
+    fun createBitmapFromString(stateValue: Array<String>, size: Float, px: Int = 96, refText: String? = null): Bitmap {
+        val bitmap = createBitmap(px, px, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD) // 窄体粗体，代替 fakeBold
+            textSize = 100f  // 只用来生成 Path，数值无所谓
+        }
+        val gap = px * 0.06f                 // 两行之间的间隙
+        val h1 = (px - gap) * size           // 第一行高度
+        //val top = if (stateValue[0].length < 4) stateValue[0] else "1.0"
+
+        drawFitted(canvas, paint, stateValue[0], RectF(0f, 0f, px.toFloat(), h1), refText = refText)
+        drawFitted(canvas, paint, stateValue[1], RectF(0f, h1 + gap, px.toFloat(), px.toFloat()))
+        return bitmap
+    }
+
+    /** 把文字按笔画真实边界画进 dst：高度铺满；太宽就横向压缩，太窄就居中（最多横向拉宽 maxStretch 倍） */
+    private fun drawFitted(canvas: Canvas, paint: Paint, text: String, dst: RectF, refText: String? = null, maxStretch: Float = 1.2f) {
+        if (text.isEmpty()) return
+        val measureText = refText ?: text
+        val refPath = Path()
+        paint.getTextPath(measureText, 0, measureText.length, 0f, 0f, refPath)
+        val refB = RectF().also { refPath.computeBounds(it, true) }
+
+        val path = Path()
+        paint.getTextPath(text, 0, text.length, 0f, 0f, path)
+        val b = RectF().also { path.computeBounds(it, true) }
+        if (refB.width() <= 0f || refB.height() <= 0f || b.height() <= 0f) return
+
+        val sy = dst.height() / refB.height()
+        val sx = minOf(dst.width() / refB.width(), sy * maxStretch)
+        val m = Matrix().apply {
+            postTranslate(-b.left, -b.top)
+            postScale(sx, sy)
+            postTranslate(dst.left + (dst.width() - b.width() * sx) / 2f, dst.top)
+        }
+        path.transform(m)
+        canvas.drawPath(path, paint)
+    }
+
+    fun readMemStatus(): Array<Int> {
         try {
-            val memInfo = FileReader("/proc/meminfo")
-            val memBuR = BufferedReader(memInfo)
-
-            memBuR.forEachLine { line ->
-                if(line.contains("MemTotal")){
-                    memstate[0] = Regex("\\d+").find(line)?.value?.toInt() ?: 0
-                }else if(line.contains("MemAvailable")){
-                    memstate[1] = Regex("\\d+").find(line)?.value?.toInt() ?: 0
-                }else{
-                    //pass
-                    //是否需要在读取到足够信息后直接跳出？
+            File("/proc/meminfo").useLines { lines ->
+                lines.forEach { line ->
+                    when {
+                        line.startsWith("MemTotal") -> memstate[0] = parseMemLine(line)
+                        line.startsWith("MemAvailable") -> memstate[1] = parseMemLine(line)
+                    }
                 }
             }
-            memusage.intValue =  100-memstate[1] * 100 / memstate[0]
-
-            memBuR.close()
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
+            // 优化：防止除以零异常
+            val total = memstate[0]
+            if (total > 0) {
+                memusage.intValue = 100 - (memstate[1] * 100 / total)
+            }
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         return memstate.toTypedArray()
     }
 
+    private fun parseMemLine(line: String): Int =
+        line.split(Regex("\\s+"))[1].toIntOrNull() ?: 0
+
     fun readCpuStatus(cpuIndex: Int): Array<Long> {
+        val root = "/sys/devices/system/cpu/cpu$cpuIndex"
+        val alltimePath = "$root/cpufreq/stats/time_in_state"
+        val maxFreqPath = "$root/cpufreq/cpuinfo_max_freq"
 
-        //val curFreqPath = "/sys/devices/system/cpu/cpu$cpuIndex/cpufreq/scaling_cur_freq"
-        val alltimePath = "/sys/devices/system/cpu/cpu$cpuIndex/cpufreq/stats/time_in_state" //10ms
-        val idletimePath = "/sys/devices/system/cpu/cpu$cpuIndex/cpuidle/state0/time"         //0.001s
-        val maxFreqPath = "/sys/devices/system/cpu/cpu$cpuIndex/cpufreq/cpuinfo_max_freq"
+        return try {
+            val maxFreq = readFirstLine(maxFreqPath).toLongOrNull() ?: 1L // 防止除以0
 
-        try {
-            val reader1 = BufferedReader(FileReader(alltimePath))
-            val reader2 = BufferedReader(FileReader(idletimePath))
-            val reader3 = BufferedReader(FileReader(maxFreqPath))
-            val cpustate : Array<Long> = arrayOf(0L,0L,0L)     //(idletime,norworktime,worktime)
-
-            cpustate[0] = reader2.readLine().toLong()/1000
-            val maxfreq : Long = reader3.readLine().toLong()
-
-
-            reader1.forEachLine { line ->
-//                LogUtils.d("time in state",line)
-                //正规化工作时间
-                cpustate[1] += line.split(" ")[0].toLong()*line.split(" ")[1].toLong()*10/maxfreq
-                //工作时间
-                cpustate[2] += line.split(" ")[1].toLong()*10
+            // 循环累加所有 cpuidle 状态的时间 (state0, state1, state2...)
+            var totalIdleTime = 0L
+            var j = 0
+            while (true) {
+                val stateIdlePath = "$root/cpuidle/state$j/time"
+                val file = File(stateIdlePath)
+                if (file.exists()) {
+                    val stateTime = file.readText().trim().toLongOrNull() ?: 0L
+                    totalIdleTime += stateTime
+                    j++
+                } else {
+                    break // 没有更多 state 时退出
+                }
             }
 
-//            LogUtils.d("usage","$cpustate")
+            val cpustate = arrayOf(totalIdleTime / 1000, 0L, 0L) // (总idle, normalized_work, total_work)
 
-            reader1.close()
-            reader2.close()
-            reader3.close()
+            File(alltimePath).useLines { lines ->
+                lines.forEach { line ->
+                    val parts = line.split(Regex("\\s+"))
+                    if (parts.size >= 2) {
+                        val freq = parts[0].toLong()
+                        val time = parts[1].toLong() * 10
+                        cpustate[1] += (freq * time) / maxFreq
+                        cpustate[2] += time
+                    }
+                }
+            }
+            cpustate
+        } catch (e: Exception) {
+            arrayOf(0L, 0L, 0L)
+        }
+    }
 
-            return cpustate
+    private fun readFirstLine(path: String): String =
+        File(path).bufferedReader().use { it.readLine() ?: "" }
 
+    /**
+     * 优化点：极大地减少 SharedPreferences 的打开次数。
+     * 原本在循环中 edit，现在改为批量提交。
+     */
+    fun getSysInfo(context: Context) {
+        val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
+        val dataMap = mutableMapOf<String, String>()
+        val longMap = mutableMapOf<String, Long>()
+
+        try {
+            var currentProcessor = -1
+            File("/proc/cpuinfo").useLines { lines ->
+                lines.forEach { line ->
+                    val parts = line.split(":").map { it.trim() }
+                    if (parts.size < 2) return@forEach
+                    val key = parts[0]
+                    val value = parts[1]
+
+                    if (key.contains("processor")) {
+                        currentProcessor = value.toIntOrNull() ?: 0
+                        cpucorecount = maxOf(cpucorecount, currentProcessor)
+
+                        // 获取该核最大频率
+                        val maxFreq = readFirstLine("/sys/devices/system/cpu/cpu$currentProcessor/cpufreq/cpuinfo_max_freq").toLongOrNull() ?: 0L
+                        longMap["CPU${currentProcessor}MaxFreq"] = maxFreq
+                    }
+
+                    if (currentProcessor != -1) {
+                        val currentVal = dataMap["CPU$currentProcessor"] ?: ""
+                        when {
+                            key.contains("implementer") || key.contains("architecture") ||
+                                    key.contains("variant") || key.contains("part") -> {
+                                dataMap["CPU$currentProcessor"] = "$currentVal$value;"
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 内存总量
+            File("/proc/meminfo").useLines { it.firstOrNull { l -> l.startsWith("MemTotal") } }?.let {
+                dataMap["TotalMemory"] = it.split(":")[1].trim()
+            }
+
+            // 一次性写入磁盘
+            prefs.edit {
+                putBoolean("PrefState", true)
+                putInt("CPUCoreNumber", cpucorecount)
+                dataMap.forEach { (k, v) -> putString(k, v) }
+                longMap.forEach { (k, v) -> putLong(k, v) }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        return arrayOf(0,0,0)
-
     }
 
-    fun getSysInfo(context: Context){
-
-        val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-        prefs.edit{putBoolean("PrefState",true)}
-
-
-        //获取CPU信息
-        try {
-            val cpuInfo = FileReader("/proc/cpuinfo")
-            val cpuBuR = BufferedReader(cpuInfo)
-            var cucore = 0
-            cpuBuR.forEachLine { line ->
-                if(line.contains("processor")){
-                    cucore= Regex("\\d+").find(line)?.value?.toInt() ?: 0
-                    cpucorecount = maxOf(cpucorecount, cucore)
-                    prefs.edit { putString("CPU$cucore", "") }
-                    //获取最大频率
-                    val maxFreqPath = "/sys/devices/system/cpu/cpu$cucore/cpufreq/cpuinfo_max_freq"
-                    try {
-                        val reader = BufferedReader(FileReader(maxFreqPath))
-                        prefs.edit { putLong("CPU${cucore}MaxFreq", reader.readLine().toLong()) }
-                        reader.close()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }else if(line.contains("implementer")){
-                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
-                //获取各核信息
-                }else if(line.contains("architecture")){
-                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
-                    //
-                }else if(line.contains("variant")){
-                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
-                    //
-                }else if(line.contains("part")){
-                    prefs.edit { putString("CPU$cucore", prefs.getString("CPU$cucore", "")+line.split(":")[1]+";") }
-                    //
-                }else{
-                    //pass
-                    //是否需要在读取到足够信息后直接跳出？
-                }
-            }
-            prefs.edit { putInt("CPUCoreNumber", cpucorecount ) }
-            cpuBuR.close()
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-        //获取内存信息
-        try {
-            val memInfo = FileReader("/proc/meminfo")
-            val memBuR = BufferedReader(memInfo)
-            memBuR.forEachLine { line ->
-                if(line.contains("MemTotal")) {
-                    prefs.edit{putString("TotalMemory", line.split(":")[1].trim() )}
-//                    println(line)
-                } else{
-                    //pass
-                    //是否需要在读取到足够信息后直接跳出？
-                }
-            }
-            memBuR.close()
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
-
-    fun getCPUArch(info: String): String{
+    fun getCPUArch(info: String): String {
         return when {
+            // --- 常见 ARM 核心 ---
+            info.contains("0xd44", ignoreCase = true) -> "Cortex-X1 ARMv8.2-A"
+            info.contains("0xd82", ignoreCase = true) -> "Cortex-X4 ARMv9.2-A"
+            info.contains("0xd84", ignoreCase = true) -> "Cortex-A725 ARMv9.2-A"
+            info.contains("0xd85", ignoreCase = true) -> "Cortex-X925 ARMv9.4-A"
             info.contains("0xc05", ignoreCase = true) -> "Cortex-A5 ARMv7-A"
             info.contains("0xc07", ignoreCase = true) -> "Cortex-A7 ARMv7-A"
             info.contains("0xc08", ignoreCase = true) -> "Cortex-A8 ARMv7-A"
@@ -290,35 +285,36 @@ object MyFunction {
             info.contains("0xd48", ignoreCase = true) -> "Cortex-X2 ARMv9-A"
             info.contains("0xd4d", ignoreCase = true) -> "Cortex-A715 ARMv9.2-A"
             info.contains("0xd4e", ignoreCase = true) -> "Cortex-X3 ARMv9-A"
-            info.contains("kB", ignoreCase = true) -> Regex("\\d+").find(info)?.value.toString()
-            else -> info
+
+            // --- 高通 Oryon V2 (如 Snapdragon 8 Gen 5 等) ---
+            info.contains("0x002", ignoreCase = true) -> {
+                when {
+                    // 如果实际测试中发现 0x3 是性能核、0x2 是能效核，把这里的条件对调即可
+                    info.contains("0x3", ignoreCase = true) -> "Qualcomm Oryon V2 (Performance)"
+                    info.contains("0x2", ignoreCase = true) -> "Qualcomm Oryon V2 (Efficiency)"
+                    else -> "Qualcomm Oryon V2"
+                }
+            }
+
+            // --- 高通 Oryon V1 (如 Snapdragon 8 Elite / 8 Gen 4) ---
+            info.contains("0x001", ignoreCase = true) -> {
+                val parts = info.split(";").map { it.trim() }
+                when {
+                    parts.contains("0x2") || parts.contains("0x3") -> "Qualcomm Oryon V1 (Performance)"
+                    parts.contains("0x4") || parts.contains("0x5") -> "Qualcomm Oryon V1 (Efficiency)"
+                    else -> "Qualcomm Oryon V1"
+                }
+            }
+
+            // --- 兜底处理 ---
+            info.contains("kB", ignoreCase = true) -> Regex("\\d+").find(info)?.value ?: info
+            else -> info.trim().ifEmpty { "Unknown" }
         }
     }
-
 }
 
-
-//日志类文件
 object LogUtils {
     private const val ENABLE_LOG = true
-
-    fun d(tag: String, msg: String) {
-        if (ENABLE_LOG) Log.d(tag, msg)
-    }
-
-    fun i(tag: String, msg: String) {
-        if (ENABLE_LOG) Log.i(tag, msg)
-    }
-
-    fun w(tag: String, msg: String) {
-        if (ENABLE_LOG) Log.w(tag, msg)
-    }
-
-    fun e(tag: String, msg: String, throwable: Throwable? = null) {
-        if (ENABLE_LOG) {
-            if (throwable != null) Log.e(tag, msg, throwable)
-            else Log.e(tag, msg)
-        }
-    }
+    fun d(tag: String, msg: String) { if (ENABLE_LOG) Log.d(tag, msg) }
+    fun e(tag: String, msg: String, t: Throwable? = null) { if (ENABLE_LOG) Log.e(tag, msg, t) }
 }
-

@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +43,7 @@ fun InformationScreen() {
                 text = "CPU Information",
                 fontSize = 25.sp ,
                 fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp)
@@ -70,9 +72,10 @@ fun InformationScreen() {
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
             Text(
-                text = "Storage Information",
+                text = "Memory Information",
                 fontSize = 25.sp ,
                 fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp)

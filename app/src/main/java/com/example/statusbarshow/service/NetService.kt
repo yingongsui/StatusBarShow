@@ -16,97 +16,117 @@ import com.example.statusbarshow.netsamplingtime
 import com.example.statusbarshow.netspeedRx
 import com.example.statusbarshow.netspeedTx
 import com.example.statusbarshow.screenstate
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 class NetService : Service() {
 
-    val channelId = "net_channel"
+    private val channelId = "net_channel"
+    private var notificationManager: NotificationManager? = null
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("Return the communication channel to the service.")
-    }
-    override fun onCreate() {
-        //通知频道设置
-        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_HIGH)
-        //静音无震动
-        channel.setSound(null, null)
-        channel.enableVibration(false)
-        channel.enableLights(false)
-
-        //创建通知频道
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-        //启用通知
-        startForeground(2, updateNotification(arrayOf("0","kB/s" )))
-
-
-
-    }
-    private val monitorserviceJob = Job()
-    private val monitorserviceScope = CoroutineScope(Dispatchers.IO + monitorserviceJob)
+    // 使用 SupervisorJob 防止单个任务失败导致整个作用域崩溃
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private var monitorJob: Job? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onBind(intent: Intent): IBinder? = null
 
-        if (monitorJob?.isActive != true) {       //防止跳转到其他界面时反复创建线程
-            monitorJob = monitorserviceScope.launch {
-                try {
-                    while (NETNotiState) {
-                        if(screenstate){
+    override fun onCreate() {
+        super.onCreate()
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-                            LogUtils.d("NetService", "Running")
-
-                            val lastRxBytes1 = TrafficStats.getTotalRxBytes()
-                            val lastTxBytes1 = TrafficStats.getTotalTxBytes()
-                            delay(netsamplingtime)
-                            val lastRxBytes2 = TrafficStats.getTotalRxBytes()
-                            val lastTxBytes2 = TrafficStats.getTotalTxBytes()
-                            netspeedRx.floatValue = (lastRxBytes2-lastRxBytes1)/netsamplingtime*1000f/1024
-                            netspeedTx.floatValue = (lastTxBytes2-lastTxBytes1)/netsamplingtime*1000f/1024
-
-                            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                            if((netspeedRx.floatValue+netspeedTx.floatValue).toInt() > 1000)
-                                notificationManager.notify(2,updateNotification(arrayOf("%.1f".format((netspeedRx.floatValue+netspeedTx.floatValue)/1024),"MB/s")))
-                            else
-                                notificationManager.notify(2,updateNotification(arrayOf( "${(netspeedRx.floatValue+netspeedTx.floatValue).toInt()}","kB/s")))
-                        }
-                        else{
-                            delay(netsamplingtime)
-                        }
-                } }catch (_: InterruptedException) {
-                        LogUtils.d("NetService", "Catch Exception >> End Thread")
-                    }//捕获异常，防止导致服务崩溃。
-
-            }//捕获异常，防止导致服务崩溃。
-
+        // ZUI/国产ROM 适配：重要性设为 IMPORTANCE_LOW 防止状态栏弹出横幅干扰
+        val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_LOW).apply {
+            setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
+            setShowBadge(false)
         }
-        return START_STICKY     //保证服务被销毁后重启
+        notificationManager?.createNotificationChannel(channel)
 
+        // 启动前台，初始显示占位
+        startForeground(2, updateNotification(arrayOf("0", "KB/s")))
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (monitorJob?.isActive != true) {
+            monitorJob = serviceScope.launch {
+                // 记录上次总流量，避免在循环内多次 delay 导致计算不准
+                var lastRxBytes = TrafficStats.getTotalRxBytes()
+                var lastTxBytes = TrafficStats.getTotalTxBytes()
+                var lastTime = System.currentTimeMillis()
+
+                while (NETNotiState) {
+                    if (screenstate) {
+                        // 1. 获取当前流量和时间
+                        val currentRxBytes = TrafficStats.getTotalRxBytes()
+                        val currentTxBytes = TrafficStats.getTotalTxBytes()
+                        val currentTime = System.currentTimeMillis()
+
+                        // 2. 计算间隔（防止除以0）
+                        val timeDelta = (currentTime - lastTime) / 1000f // 转换为秒
+                        if (timeDelta > 0 && lastRxBytes > 0) {
+
+                            // 计算下行和上行速率 (B/s)
+                            val rxSpeed = (currentRxBytes - lastRxBytes) / timeDelta
+                            val txSpeed = (currentTxBytes - lastTxBytes) / timeDelta
+
+                            netspeedRx.floatValue = rxSpeed / 1024f // KB/s
+                            netspeedTx.floatValue = txSpeed / 1024f // KB/s
+
+                            val totalSpeedKB = netspeedRx.floatValue + netspeedTx.floatValue
+
+                            // 3. 动态选择单位并更新通知
+                            val displayData = if (totalSpeedKB >= 1024) {
+                                arrayOf("%.1f".format(totalSpeedKB / 1024f), "MB/s")
+                            } else {
+                                arrayOf("${totalSpeedKB.toInt()}", "KB/s")
+                            }
+
+                            notificationManager?.notify(2, updateNotification(displayData))
+                        }
+
+                        // 4. 更新历史记录点
+                        lastRxBytes = currentRxBytes
+                        lastTxBytes = currentTxBytes
+                        lastTime = currentTime
+
+                        delay(netsamplingtime)
+                    } else {
+                        // 屏幕关闭时大幅降低频率，仅维持后台不被杀，节省电量
+                        delay(5000)
+                        // 息屏重置基准点，防止亮屏瞬间数值飙升
+                        lastRxBytes = TrafficStats.getTotalRxBytes()
+                        lastTxBytes = TrafficStats.getTotalTxBytes()
+                        lastTime = System.currentTimeMillis()
+                    }
+                }
+            }
+        }
+        return START_STICKY
     }
 
     override fun onDestroy() {
-        monitorserviceJob.cancel()
+        serviceJob.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
-        LogUtils.d("NetService", "Stop Service")
+        LogUtils.d("NetService", "Net Service Stopped")
         super.onDestroy()
     }
 
-    fun updateNotification(currentvalue: Array<String>): Notification {
+    private fun updateNotification(currentvalue: Array<String>): Notification {
+        val bitmap = MyFunction.createBitmapFromString(currentvalue, 0.6f, refText = "888")
 
-        return  NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(IconCompat.createWithBitmap(MyFunction.createBitmapFromString(currentvalue,0.6f)))
-                .setContentTitle("NETWORK")
-                .setContentText("NETWORK SPEED : ${currentvalue[0]} ${currentvalue[1]}")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setAutoCancel(true)
-                .setGroupSummary(false)
-                .setGroup("NET_STATE")
-                .setSortKey("NET")
-                .build()
-
+        return NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(IconCompat.createWithBitmap(bitmap))
+            //.setLargeIcon(bitmap)
+            .setContentTitle("NetSpeed")
+            .setContentText("${currentvalue[0]} ${currentvalue[1]}")
+            // 设为 PRIORITY_LOW 以便在状态栏安静显示数字，不产生横幅
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setOngoing(true)
+            .setSilent(true) // 强制静音，避免频繁通知导致的系统卡顿
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .build()
     }
 }

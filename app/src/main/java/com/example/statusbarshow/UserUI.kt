@@ -35,8 +35,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.edit
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -75,6 +78,7 @@ import com.example.statusbarshow.ui.theme.DeepSkyBlue
 import com.example.statusbarshow.ui.theme.DodgerBlue
 import com.example.statusbarshow.ui.theme.ForestGreen
 import com.example.statusbarshow.ui.theme.SteelBlue
+
 
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -145,10 +149,11 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
     val textMeasurer = rememberTextMeasurer()
     var historyON = false
     val context = LocalContext.current
-    val paintColor : Array<Color> = arrayOf(SteelBlue ,ForestGreen,BlueViolet)
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val paintColor : Array<Color> = arrayOf(SteelBlue , ForestGreen, BlueViolet)
 
     val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-    val path: Array< Path> = Array(linenum){ Path() }
+    val path: Array<Path> = Array(linenum){ Path() }
     var points : MutableList<Array<Float>> = MutableList(linenum){
             row -> prefs.getString(name+"HIS$row","0 ".repeat(pointNum+1).trimEnd())!!.split(" ").map { it.toFloat() }.toTypedArray()
     }
@@ -158,8 +163,8 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
     fun addPoint(y: Array<Float>) {
         (0..linenum-1).forEach {
                 row ->
-                (0..pointNum-1).forEach { col -> points[row][col] = points[row][col+1] }
-                points[row][pointNum] = y[row]
+            (0..pointNum-1).forEach { col -> points[row][col] = points[row][col+1] }
+            points[row][pointNum] = y[row]
 //                LogUtils.d("Addpoint",row.toString())
         }
 
@@ -251,9 +256,31 @@ fun UsageGraph(name : String, pointNum:Int, width : Float, height : Int, axisON 
         )
 
 
+
         //标明CPU名字或者标明%号
-        if (!axisON)  drawText(textMeasurer, name, Offset(endX/10F*2.5F, originY/10F*3F), TextStyle(fontSize = (height/20).sp, color = Color.Gray.copy(alpha = 0.3f),fontFamily = FontFamily.Monospace))
-        else drawText(textMeasurer,"(%)",Offset(originX, endY-size.height/15),TextStyle(fontSize = 10.sp, color = Color.Gray))
+        // =========================================================================================
+        // 【唯一修改点】：将 fontSize 的计算方式从 (height / 25).sp 调整为 (height / 35f).sp
+        // 通过增大分母，使计算出的基础字号在手机上变小，避免过大。
+        // =========================================================================================
+        // 标明CPU名字或者标明%号
+        if (!axisON) {
+            // 获取当前设备的屏幕宽度 (dp)
+            // 如果宽度 >= 600dp（通常平板的门槛），分母用小一点的（比如 25 保持字大），否则（手机）用大一点的（比如 38 缩小字）
+            val dynamicDivisor = if (screenWidthDp >= 600) 20f else 30f
+
+            drawText(
+                textMeasurer,
+                name,
+                Offset(endX / 10F * 2.5F, originY / 10F * 3F),
+                TextStyle(
+                    fontSize = (height / dynamicDivisor).sp,
+                    color = Color.Gray.copy(alpha = 0.3f),
+                    fontFamily = FontFamily.Monospace
+                )
+            )
+        } else {
+            drawText(textMeasurer, "(%)", Offset(originX, endY - size.height / 15), TextStyle(fontSize = 10.sp, color = Color.Gray))
+        }
 
 
         //  X轴刻度
@@ -363,9 +390,9 @@ fun SettingItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
             subtitle?.let {
-                Text(text = it, fontSize = 15.sp, color = Color.Gray,overflow = TextOverflow.Clip)
+                Text(text = it, fontSize = 15.sp, color = Color.Gray,overflow = TextOverflow.Clip, fontFamily = FontFamily.Monospace)
             }
         }
 
@@ -384,9 +411,9 @@ fun TypeRatioButton(
     icon: ImageVector,
     title: String,
     selectedstate: Int,
-    contents: Array<String> ,
-    onOptionSelected: (Int) -> Unit, //没有返回值的参数为字符串的函数
-    ) {
+    contents: Array<String>,
+    onOptionSelected: (Int) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -400,24 +427,29 @@ fun TypeRatioButton(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
             modifier = Modifier
-                .padding(0.dp)
                 .width(50.dp)
         )
         contents.forEach {
-            Box(modifier = Modifier.weight(1f),contentAlignment = Alignment.CenterStart) {
+            val index = contents.indexOf(it)
+            val itemWeight = if (index == 0) 1.4f else 0.8f
+            Box(
+                modifier = Modifier
+                    .weight(itemWeight)
+                    .clickable { onOptionSelected(index) },
+                contentAlignment = Alignment.CenterStart
+            ) {
                 RadioButton(
                     selected = (contents[selectedstate] == it),
-                    onClick = { onOptionSelected(contents.indexOf(it)) }
+                    onClick = { onOptionSelected(index) }
                 )
                 Text(
-                    text = it ,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Start,
-                    fontSize = 15.sp,
-                    overflow = TextOverflow.Clip,//单词换行模式
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
                     modifier = Modifier
-                        .padding(start = 50.dp)
+                        .padding(start = 45.dp)
                         .fillMaxWidth()
                 )
             }
@@ -444,6 +476,7 @@ fun ValueSliderBar(
                 text = title,
                 modifier = Modifier.padding(bottom = 16.dp),
                 fontSize = 20.sp,
+                fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.bodyLarge,
     //                    modifier = Modifier.padding(end = 230.dp)
             )
@@ -472,6 +505,7 @@ fun ValueSliderBar(
                     text = "${value.toInt()}$unit",
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
                     color = DeepSkyBlue,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
