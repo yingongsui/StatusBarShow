@@ -372,6 +372,7 @@ fun ColorPickerRow(
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
+            fontSize = 18.sp,
             maxLines = 2,
             softWrap = true,
             modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
@@ -425,6 +426,7 @@ fun ThemeSwatchRow(
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
+            fontSize = 18.sp,
             maxLines = 2,
             softWrap = true,
             modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
@@ -455,7 +457,7 @@ fun ThemeSwatchRow(
                 ) {
                     Text(
                         text = name,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                         color = textColor
@@ -492,6 +494,7 @@ fun OptionSwatchRow(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
             maxLines = 2,
@@ -528,7 +531,7 @@ fun OptionSwatchRow(
                 ) {
                     Text(
                         text = text,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                         color = if (isSelected) Color.White else Color.Gray
