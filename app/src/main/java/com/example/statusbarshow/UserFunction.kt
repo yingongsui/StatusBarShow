@@ -71,19 +71,6 @@ class ScreenStateApp : Application() {
 
 object MyFunction {
 
-    // 优化：复用 Paint 对象减少 GC 压力
-    private val textPaint = Paint().apply {
-        isAntiAlias = true
-        textAlign = Paint.Align.CENTER
-        isFakeBoldText = true
-    }
-
-    private val subTextPaint = Paint().apply {
-        isAntiAlias = true
-        textAlign = Paint.Align.CENTER
-        isFakeBoldText = true
-    }
-
     fun createBitmapFromString(stateValue: Array<String>, size: Float, px: Int = 96, refText: String? = null): Bitmap {
         val bitmap = createBitmap(px, px, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -186,7 +173,7 @@ object MyFunction {
                 }
             }
             cpustate
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             arrayOf(0L, 0L, 0L)
         }
     }

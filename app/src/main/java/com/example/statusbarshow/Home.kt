@@ -14,7 +14,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,7 +31,7 @@ fun HomeScreen() {
 
     val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
-    var columnWidth by remember { mutableStateOf(0) }
+    var columnWidth by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).onGloballyPositioned { layoutCoordinates ->

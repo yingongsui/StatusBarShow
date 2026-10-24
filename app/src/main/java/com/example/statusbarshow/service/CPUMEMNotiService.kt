@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.example.statusbarshow.CMNotiState
@@ -20,6 +19,7 @@ import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.memstate
 import com.example.statusbarshow.screenstate
 import kotlinx.coroutines.*
+import kotlin.time.Duration.Companion.milliseconds
 
 class CPUMEMNotiService : Service() {
 
@@ -75,7 +75,7 @@ class CPUMEMNotiService : Service() {
                             allCpuTime1[i] = MyFunction.readCpuStatus(i)
                         }
 
-                        delay(cmsamplingtime)
+                        delay(cmsamplingtime.milliseconds)
 
                         // 2. 获取时刻2数据
                         for (i in 0..coreNumber) {
@@ -118,11 +118,11 @@ class CPUMEMNotiService : Service() {
 
                     } catch (e: Exception) {
                         LogUtils.e("CPUMEMService", "Calculation Error", e)
-                        delay(2000) // 发生错误时稍作等待，防止无限快速循环
+                        delay(2000.milliseconds) // 发生错误时稍作等待，防止无限快速循环
                     }
                 } else {
                     // 屏幕关闭时进入低频轮询，节省电量
-                    delay(3000)
+                    delay(3000.milliseconds)
                 }
             }
         }

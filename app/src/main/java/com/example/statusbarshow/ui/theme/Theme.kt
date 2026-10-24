@@ -1,17 +1,16 @@
 package com.example.statusbarshow.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+//import android.os.Build
+//import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+//import androidx.compose.material3.dynamicDarkColorScheme
+//import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 
@@ -39,19 +38,35 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun StatusBarShowTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("MyPrefs", android.content.Context.MODE_PRIVATE)
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val themeMode = prefs.getInt("AppThemeMode", 0) // 0 = Dark, 1 = Light
+    val isDark = themeMode == 0
+
+    val curveColorIndex = prefs.getInt("AppCurveColor", 0)
+    val selectedPrimary = AppCurveColors.getOrElse(curveColorIndex) { DodgerBlue }
+
+    val colorScheme = if (isDark) {
+        darkColorScheme(
+            primary = selectedPrimary,
+            background = Color.Black,
+            surface = Color.Black,
+            onPrimary = Color.White,
+            onBackground = Color.White,
+            onSurface = Color.White
+        )
+    } else {
+        lightColorScheme(
+            primary = selectedPrimary,
+            background = Color.White,
+            surface = Color.White,
+            onPrimary = Color.White,
+            onBackground = Color.Black,
+            onSurface = Color.Black
+        )
     }
 
     MaterialTheme(

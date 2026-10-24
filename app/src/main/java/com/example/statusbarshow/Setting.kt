@@ -16,9 +16,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+//import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.DeveloperBoard
 import androidx.compose.material.icons.filled.Extension
+//import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.ImportExport
+//import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +53,10 @@ import androidx.core.content.edit
 import com.example.statusbarshow.service.CPUMEMNotiService
 import com.example.statusbarshow.service.NetService
 import com.example.statusbarshow.ui.theme.DodgerBlue
+//import com.example.statusbarshow.ui.theme.ForestGreen
+//import com.example.statusbarshow.ui.theme.BlueViolet
+//import com.example.statusbarshow.ui.theme.SteelBlue
+import com.example.statusbarshow.ui.theme.AppCurveColors
 import androidx.core.net.toUri
 //import androidx.compose.ui.tooling.preview.Preview
 
@@ -59,6 +66,8 @@ fun SettingsScreen() {
 
     val context = LocalContext.current
     val prefs =  context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+    val isDark = prefs.getInt("AppThemeMode", 0) == 0
+    val cardBg = if (isDark) Color.Black else Color.White
 
     var showDialog by remember { mutableStateOf(false) }
     var netspeedchecked by remember { mutableStateOf(NETNotiState) }
@@ -92,11 +101,57 @@ fun SettingsScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
                 border = BorderStroke(1.dp, Color.Gray),
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-//                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Text(
+                    text = "Appearance",
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                ThemeSwatchRow(
+                    title = "Theme",
+                    selectedIndex = prefs.getInt("AppThemeMode", 0),
+                    onThemeSelected = {
+                        prefs.edit { putInt("AppThemeMode", it) }
+                        (context as? android.app.Activity)?.recreate()
+                    }
+                )
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                ColorPickerRow(
+                    title = "Main Color",
+                    colors = AppCurveColors,
+                    selectedIndex = prefs.getInt("AppCurveColor", 0),
+                    onColorSelected = {
+                        prefs.edit { putInt("AppCurveColor", it) }
+                        (context as? android.app.Activity)?.recreate()
+                    }
+                )
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                ColorPickerRow(
+                    title = "Sub Color",
+                    colors = AppCurveColors,
+                    selectedIndex = prefs.getInt("AppCurveColor2", 1),
+                    onColorSelected = {
+                        prefs.edit { putInt("AppCurveColor2", it) }
+                        (context as? android.app.Activity)?.recreate()
+                    }
+                )
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                border = BorderStroke(1.dp, Color.Gray),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             ) {
                 Text(
                     text = "Monitor Setting",
@@ -188,11 +243,10 @@ fun SettingsScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
                 border = BorderStroke(1.dp, Color.Gray),
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-//                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Text(
                     text = "Notification Setting",
@@ -202,23 +256,22 @@ fun SettingsScreen() {
                     fontFamily = FontFamily.Monospace
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-                //核心在onOptionSelected = {cpuselected =it}，it就是组件中传入的参数：就是onClick = { onOptionSelected(it) }中的it
-                TypeRatioButton(
+                OptionSwatchRow(
                     icon = Icons.Default.Extension,
                     title = "CPU",
                     contents = arrayOf("Norm-Usage", "Usage"),
-                    selectedstate = cpuselected,
+                    selectedIndex = cpuselected,
                     onOptionSelected = {
                         cpuselected = it
                         prefs.edit { putInt("CPUNotiType", it) }
                         CPUNotiType = it
                     })
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-                TypeRatioButton(
+                OptionSwatchRow(
                     icon = Icons.Default.Extension,
                     title = "MEM",
                     contents = arrayOf("Available", "Used"),
-                    selectedstate = memselected,
+                    selectedIndex = memselected,
                     onOptionSelected = {
                         memselected = it
                         prefs.edit { putInt("MEMNotiType", it) }
@@ -229,16 +282,16 @@ fun SettingsScreen() {
 
             }
 
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp)
                     .clickable{showDialog = true},
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                colors = CardDefaults.cardColors(containerColor = cardBg),
                 border = BorderStroke(1.dp, Color.Gray),
                 shape = RoundedCornerShape(12.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-//                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Text(
                     text = "About",

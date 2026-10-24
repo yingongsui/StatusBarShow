@@ -19,24 +19,23 @@ import com.example.statusbarshow.service.CPUMEMNotiService
 import com.example.statusbarshow.service.NetService
 import com.example.statusbarshow.ui.theme.DodgerBlue
 
+import androidx.compose.material3.lightColorScheme
+import com.example.statusbarshow.ui.theme.ForestGreen
+import com.example.statusbarshow.ui.theme.BlueViolet
+import com.example.statusbarshow.ui.theme.SteelBlue
+
+import com.example.statusbarshow.ui.theme.StatusBarShowTheme
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
+
         setContent {
-            MaterialTheme(
-                colorScheme = darkColorScheme(
-                    primary = DodgerBlue,
-                    background = Color.Black,
-                    surface = Color.Black,
-                    onPrimary = Color.White,
-                    onBackground = Color.White,
-                    onSurface = Color.White
-                )
-            ) {
+            StatusBarShowTheme {
                 MainScreen()
             }
-
         }
 
         //获取权限
@@ -49,8 +48,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-
-        val prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE)
 
         if( !prefs.getBoolean("PrefState",false)) MyFunction.getSysInfo(this) //传入 Activity 的 Context，实行该函数，获取核心信息
 

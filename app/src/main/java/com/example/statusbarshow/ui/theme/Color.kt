@@ -31,3 +31,6 @@ val DarkViolet = Color(0xFF9400D3)    // 深紫罗兰
 val Plum = Color(0xFFDDA0DD)          // 李子紫
 val Lavender = Color(0xFFE6E6FA)      // 薰衣草
 
+val CrimsonRed = Color(0xFFE53935)    // 红色
+val AppCurveColors = listOf(DodgerBlue, ForestGreen, BlueViolet, SteelBlue, CrimsonRed)
+
