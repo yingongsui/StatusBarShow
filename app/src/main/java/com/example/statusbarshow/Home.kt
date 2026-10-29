@@ -92,6 +92,19 @@ fun HomeScreen() {
             )
 
             UsageGraph("Memory", 20, 1f, columnWidth/16*9, true, 1, "M")
+
+            HorizontalDivider(Modifier, thickness = 3.dp, DividerDefaults.color)
+            Text(
+                text = "Net Speed",
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+            )
+
+            UsageGraph("Net Speed", 20, 1f, columnWidth/16*9, true, 2, "N")
         }
 
     }

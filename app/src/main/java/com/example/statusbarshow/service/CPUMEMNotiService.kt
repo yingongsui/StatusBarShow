@@ -9,6 +9,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.example.statusbarshow.CMNotiState
+import com.example.statusbarshow.CMFloatingState
+import com.example.statusbarshow.FloatingWindowHelper
 import com.example.statusbarshow.CPUNotiType
 import com.example.statusbarshow.LogUtils
 import com.example.statusbarshow.MEMNotiType
@@ -25,6 +27,7 @@ class CPUMEMNotiService : Service() {
 
     private val channelId = "cpumem_channel"
     private var notificationManager: NotificationManager? = null
+    private val floatingHelper by lazy { FloatingWindowHelper(this) }
 
     // 使用专门的协程作用域管理后台任务
     private val monitorserviceJob = SupervisorJob()
@@ -52,6 +55,9 @@ class CPUMEMNotiService : Service() {
 
         // 立即启动前台服务，防止 ANR
         startForeground(1, buildNotification(arrayOf("--%", "--G")))
+        if (CMFloatingState) {
+            floatingHelper.show(arrayOf("--%", "--G"))
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -66,64 +72,97 @@ class CPUMEMNotiService : Service() {
             val allCpuTime1 = Array(coreNumber + 1) { Array(3) { 0L } }
             val allCpuTime2 = Array(coreNumber + 1) { Array(3) { 0L } }
 
-            while (CMNotiState) {
-                if (screenstate) {
-                    try {
-                        // 1. 获取时刻1数据
-                        MyFunction.readMemStatus()
-                        for (i in 0..coreNumber) {
-                            allCpuTime1[i] = MyFunction.readCpuStatus(i)
-                        }
+            val maxFreqs = DoubleArray(coreNumber + 1) { i ->
+                prefs.getLong("CPU${i}MaxFreq", 1L).toDouble()
+            }
+            val totalMaxFreq = maxFreqs.sum().coerceAtLeast(1.0)
 
-                        delay(cmsamplingtime.milliseconds)
-
-                        // 2. 获取时刻2数据
-                        for (i in 0..coreNumber) {
-                            allCpuTime2[i] = MyFunction.readCpuStatus(i)
-                        }
-
-                        // 3. 计算各核心使用率
-                        for (i in 0..coreNumber) {
-                            val timeDelta = allCpuTime2[i][2] - allCpuTime1[i][2]
-
-                            // 优化：防止除以零崩溃 (系统负载过低或采样间隔太短时可能发生)
-                            if (timeDelta > 0) {
-                                val rawUsage1 = (allCpuTime2[i][1] - allCpuTime1[i][1]) * 100 / timeDelta
-                                val rawUsage2 = 100 - (allCpuTime2[i][0] - allCpuTime1[i][0]) * 100 / timeDelta
-
-                                val usage1 = rawUsage1.coerceIn(0L, 100L)
-                                val usage2 = rawUsage2.coerceIn(0L, 100L)
-
-                                // 更新状态列表 (UI 会响应)
-                                cpuusage[i][0] = usage1.toInt()
-                                cpuusage[i][1] = usage2.toInt()
-                            }
-                        }
-
-                        // 4. 计算平均负载
-                        val avgWork = cpuusage.map { it[0] }.average().toInt()
-                        val avgIdle = cpuusage.map { it[1] }.average().toInt()
-
-                        totalcpuusage[0] = avgWork
-                        totalcpuusage[1] = avgIdle
-
-                        // 5. 更新通知栏
-                        val memG = arrayOf(memstate[1], memstate[0] - memstate[1])[MEMNotiType].toFloat() / 1024 / 1024
-                        val displayValues = arrayOf(
-                            "%02d%%".format(totalcpuusage[CPUNotiType]),
-                            "%.1fG".format(memG)
-                        )
-
-                        notificationManager?.notify(1, buildNotification(displayValues))
-
-                    } catch (e: Exception) {
-                        LogUtils.e("CPUMEMService", "Calculation Error", e)
-                        delay(2000.milliseconds) // 发生错误时稍作等待，防止无限快速循环
+            while (CMNotiState || CMFloatingState) {
+                if (!screenstate) {
+                    withContext(Dispatchers.Main) {
+                        floatingHelper.hide()
                     }
-                } else {
-                    // 屏幕关闭时进入低频轮询，节省电量
-                    delay(3000.milliseconds)
+                    while (!screenstate && (CMNotiState || CMFloatingState)) {
+                        delay(2000.milliseconds)
+                    }
+                    continue
                 }
+
+                try {
+                    // 1. 获取时刻1数据
+                    MyFunction.readMemStatus()
+                    for (i in 0..coreNumber) {
+                        allCpuTime1[i] = MyFunction.readCpuStatus(i)
+                    }
+
+                    delay(cmsamplingtime.milliseconds)
+
+                    // 2. 获取时刻2数据
+                    for (i in 0..coreNumber) {
+                        allCpuTime2[i] = MyFunction.readCpuStatus(i)
+                    }
+
+                    // 3. 计算各核心使用率
+                    for (i in 0..coreNumber) {
+                        val timeDelta = allCpuTime2[i][2] - allCpuTime1[i][2]
+
+                        // 优化：防止除以零崩溃 (系统负载过低或采样间隔太短时可能发生)
+                        if (timeDelta > 0) {
+                            val rawUsage1 = (allCpuTime2[i][1] - allCpuTime1[i][1]) * 100 / timeDelta
+                            val rawUsage2 = 100 - (allCpuTime2[i][0] - allCpuTime1[i][0]) * 100 / timeDelta
+
+                            val usage1 = rawUsage1.coerceIn(0L, 100L)
+                            val usage2 = rawUsage2.coerceIn(0L, 100L)
+
+                            // 更新状态列表 (UI 会响应)
+                            cpuusage[i][0] = usage1.toInt()
+                            cpuusage[i][1] = usage2.toInt()
+                        }
+                    }
+
+                    // 4. 计算加权平均负载 (考虑异构多核算力差异，权重 = 核最大频率 / 所有核最大频率之和)
+                    var weightedWorkSum = 0.0
+                    var weightedIdleSum = 0.0
+                    for (i in 0..coreNumber) {
+                        val weight = maxFreqs[i] / totalMaxFreq
+                        weightedWorkSum += cpuusage[i][0].toDouble() * weight
+                        weightedIdleSum += cpuusage[i][1].toDouble() * weight
+                    }
+
+                    totalcpuusage[0] = weightedWorkSum.toInt().coerceIn(0, 100)
+                    totalcpuusage[1] = weightedIdleSum.toInt().coerceIn(0, 100)
+
+                    // 5. 更新通知栏/悬浮窗
+                    val memG = arrayOf(memstate[1], memstate[0] - memstate[1])[MEMNotiType].toFloat() / 1024 / 1024
+                    val displayValues = arrayOf(
+                        "%02d%%".format(totalcpuusage[CPUNotiType]),
+                        "%.1fG".format(memG)
+                    )
+
+                    if (CMNotiState) {
+                        notificationManager?.notify(1, buildNotification(displayValues))
+                    } else {
+                        notificationManager?.cancel(1)
+                    }
+
+                    if (CMFloatingState) {
+                        withContext(Dispatchers.Main) {
+                            floatingHelper.show(displayValues)
+                            floatingHelper.update(displayValues)
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            floatingHelper.hide()
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    LogUtils.e("CPUMEMService", "Calculation Error", e)
+                    delay(2000.milliseconds) // 发生错误时稍作等待，防止无限快速循环
+                }
+            }
+            withContext(Dispatchers.Main) {
+                floatingHelper.hide()
             }
         }
 
@@ -131,6 +170,7 @@ class CPUMEMNotiService : Service() {
     }
 
     override fun onDestroy() {
+        floatingHelper.hide()
         monitorJob?.cancel()
         monitorserviceJob.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)

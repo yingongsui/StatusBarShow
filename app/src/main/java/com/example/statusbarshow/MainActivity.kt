@@ -8,21 +8,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+//import androidx.compose.material3.MaterialTheme
+//import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.toMutableStateList
-import androidx.compose.ui.graphics.Color
+//import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.statusbarshow.service.CPUMEMNotiService
 import com.example.statusbarshow.service.NetService
-import com.example.statusbarshow.ui.theme.DodgerBlue
+//import com.example.statusbarshow.ui.theme.DodgerBlue
 
-import androidx.compose.material3.lightColorScheme
-import com.example.statusbarshow.ui.theme.ForestGreen
-import com.example.statusbarshow.ui.theme.BlueViolet
-import com.example.statusbarshow.ui.theme.SteelBlue
+//import androidx.compose.material3.lightColorScheme
+//import com.example.statusbarshow.ui.theme.ForestGreen
+//import com.example.statusbarshow.ui.theme.BlueViolet
+//import com.example.statusbarshow.ui.theme.SteelBlue
 
 import com.example.statusbarshow.ui.theme.StatusBarShowTheme
 
@@ -63,6 +63,8 @@ class MainActivity : ComponentActivity() {
         MEMNotiType = prefs.getInt("MEMNotiType",1)
         CMNotiState = prefs.getBoolean("CMNotiState",false)
         NETNotiState = prefs.getBoolean("NETNotiState",false)
+        NetFloatingState = prefs.getBoolean("NetFloatingState",false)
+        CMFloatingState = prefs.getBoolean("CMFloatingState",false)
         CPUDrawState = MutableList(cpucorecount+1){
             index -> prefs.getBoolean("CPU${index}DrawState", true)
         }.toMutableStateList()
@@ -73,9 +75,17 @@ class MainActivity : ComponentActivity() {
         val cmnointent = Intent(this, CPUMEMNotiService::class.java)
 
 
-        //如果前台服务，必须6秒内调用startForeground来启用通知；前台服务无法在后台启动，会导致广播失效，系统资源浪费
-        if (NETNotiState) this.startForegroundService(netintent) else this.stopService(netintent)
-        if (CMNotiState ) this.startForegroundService(cmnointent) else this.stopService(cmnointent)
+        if (NETNotiState || NetFloatingState) {
+            this.startForegroundService(netintent)
+        } else {
+            this.stopService(netintent)
+        }
+
+        if (CMNotiState || CMFloatingState) {
+            this.startForegroundService(cmnointent)
+        } else {
+            this.stopService(cmnointent)
+        }
 
 
         }

@@ -82,6 +82,8 @@ import com.example.statusbarshow.ui.theme.DodgerBlue
 import com.example.statusbarshow.ui.theme.ForestGreen
 import kotlin.time.Duration.Companion.milliseconds
 
+//import kotlin.time.Duration.Companion.milliseconds
+
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
@@ -185,6 +187,7 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
                 when (type) {
                     "C" -> if (idx == 0) totalcpuusage[0].toFloat() else totalcpuusage[1].toFloat()
                     "M" -> memusage.intValue.toFloat()
+                    "N" -> if (idx == 0) netspeedRx.floatValue else netspeedTx.floatValue
                     else -> 0f
                 }
             }
@@ -206,11 +209,23 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
         }
     }
 
-    // 使用 LaunchedEffect 在后台定时采集点，彻底将副作用移出 Canvas 绘制阶段，消除卡顿和重绘循环
-    LaunchedEffect(name, historyON) {
+    // 使用 LaunchedEffect 在后台定时采集点，如果监控关闭或屏幕熄灭则暂停
+    LaunchedEffect(name, historyON, type) {
         while (true) {
-            delay(1000.milliseconds) // 每秒采集一次
-            addPoint()
+            delay(1000L.milliseconds)
+            val number = type.filter { it.isDigit() }
+            val isActive = if (number.isNotEmpty()) {
+                CMNotiState || CMFloatingState
+            } else {
+                when (type) {
+                    "C" -> CMNotiState || CMFloatingState
+                    "M" -> CMNotiState || CMFloatingState
+                    else -> NETNotiState || NetFloatingState
+                }
+            }
+            if (screenstate && isActive) {
+                addPoint()
+            }
         }
     }
 
@@ -253,6 +268,24 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
         drawLine(color = Color.Gray, start = Offset(originX, originY), end = Offset(originX, endY), strokeWidth = 2f, cap = StrokeCap.Round)
         drawLine(color = Color.Gray, start = Offset(endX, originY), end = Offset(endX, endY), strokeWidth = 2f, cap = StrokeCap.Round)
 
+        val isNet = (type == "N")
+        val maxVal = if (isNet) {
+            maxOf(100f, points.maxOfOrNull { row -> row.maxOrNull() ?: 0f } ?: 100f)
+        } else {
+            100f
+        }
+        val maxY = if (isNet) {
+            when {
+                maxVal <= 500f -> 500f
+                maxVal <= 1024f -> 1024f
+                maxVal <= 1024f * 10f -> 1024f * 10f
+                maxVal <= 1024f * 100f -> 1024f * 100f
+                else -> maxVal * 1.2f
+            }
+        } else {
+            100f
+        }
+
         // 标签绘制
         if (!axisON) {
             val dynamicDivisor = if (screenWidthDp >= 600) 20f else 30f
@@ -267,7 +300,12 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
                 )
             )
         } else {
-            drawText(textMeasurer, "(%)", Offset(originX, endY - size.height / 15), TextStyle(fontSize = 10.sp, color = Color.Gray))
+            val unitText = if (isNet) {
+                if (maxY >= 1024f) "(MB/s)" else "(KB/s)"
+            } else {
+                "(%)"
+            }
+            drawText(textMeasurer, unitText, Offset(originX, endY - size.height / 15), TextStyle(fontSize = 10.sp, color = Color.Gray))
         }
 
         // X轴刻度
@@ -283,24 +321,44 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             drawLine(color = Color.Gray, start = Offset(originX - 5f, y), end = Offset(originX + 5f, y), strokeWidth = 2f, cap = StrokeCap.Round)
             drawLine(color = Color.Gray, start = Offset(endX - 5f, y), end = Offset(endX + 5f, y), strokeWidth = 2f, cap = StrokeCap.Round)
 
-            if (i % 2 == 0 && axisON)
+            if (i % 2 == 0 && axisON) {
+                val labelText = if (isNet) {
+                    val valKb = (maxY / 10f) * i
+                    if (maxY == 1024f) {
+                        // 1 MB/s 档位：保留一位小数
+                        "%.1f".format(valKb / 1024f)
+                    } else if (maxY > 1024f) {
+                        // 其他 MB/s 档位：不保留小数
+                        "%.0f".format(valKb / 1024f)
+                    } else {
+                        // KB/s 档位：不保留小数
+                        "%.0f".format(valKb)
+                    }
+                } else {
+                    "${i * 10}"
+                }
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = "${i * 10}",
+                    text = labelText,
                     topLeft = Offset(0f, y - 15f),
-                    style = TextStyle(fontSize = 10.sp, color = Color.Gray)
+                    style = TextStyle(fontSize = 9.sp, color = Color.Gray)
                 )
+            }
         }
 
         // 纯净的绘制阶段：只读取 points 进行绘制，无任何副作用
         val number = type.filter { it.isDigit() }
         (0 until linenum).forEach { itIdx ->
             path[itIdx].reset()
-            path[itIdx].moveTo(originX, originY - points[itIdx][0] / 10 * yscale)
+            val raw0 = points[itIdx][0]
+            val norm0 = if (isNet) (raw0 / maxY).coerceIn(0f, 1f) else (raw0 / 100f).coerceIn(0f, 1f)
+            path[itIdx].moveTo(originX, originY - norm0 * 10 * yscale)
             for (i in 0..pointNum) {
+                val rawVal = points[itIdx][i]
+                val normVal = if (isNet) (rawVal / maxY).coerceIn(0f, 1f) else (rawVal / 100f).coerceIn(0f, 1f)
                 path[itIdx].lineTo(
                     originX + i * xscale,
-                    originY - points[itIdx][i] / 10 * yscale
+                    originY - normVal * 10 * yscale
                 )
             }
             drawPath(
@@ -320,6 +378,7 @@ fun SettingItem(
     hasSwitch: Boolean = false,
     switchScale:Float = 1f,
     switchState: Boolean = false,
+    enabled: Boolean = true,
     onSwitchChange: ((Boolean) -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
@@ -345,6 +404,7 @@ fun SettingItem(
             Switch(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
+                enabled = enabled,
                 modifier = Modifier.scale(switchScale)
             )
         }
@@ -408,9 +468,6 @@ fun ThemeSwatchRow(
     selectedIndex: Int,
     onThemeSelected: (Int) -> Unit
 ) {
-    val prefs = LocalContext.current.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-    val colorIndex = prefs.getInt("AppCurveColor", 0)
-    val primaryColor = AppCurveColors.getOrElse(colorIndex) { DodgerBlue }
     val themes = listOf("Dark", "Light")
 
     Row(
@@ -448,8 +505,8 @@ fun ThemeSwatchRow(
                         .clip(RoundedCornerShape(8.dp))
                         .background(innerBg)
                         .border(
-                            width = if (isSelected) 3.dp else 2.dp,
-                            color = if (isSelected) primaryColor else Color.Gray,
+                            width = if (isSelected) 4.dp else 2.dp,
+                            color = if (isSelected) Color.White else Color.Gray,
                             shape = RoundedCornerShape(8.dp)
                         )
                         .clickable { onThemeSelected(index) },
@@ -518,23 +575,25 @@ fun OptionSwatchRow(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 4.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .background(if (isSelected) activeColor else Color.Transparent)
                         .border(
                             width = if (isSelected) 3.dp else 2.dp,
                             color = if (isSelected) activeColor else Color.Gray,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(6.dp)
                         )
-                        .clickable { onOptionSelected(index) }
-                        .padding(vertical = 8.dp),
+                        .clickable { onOptionSelected(index) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = text,
-                        fontSize = 14.sp,
+                        fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else Color.Gray
+                        color = if (isSelected) Color.White else Color.Gray,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

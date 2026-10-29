@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.DeveloperBoard
 import androidx.compose.material.icons.filled.Extension
 //import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.ImportExport
+import androidx.compose.material.icons.filled.OpenWith
+//import com.example.statusbarshow.NetFloatingState
+//import com.example.statusbarshow.CMFloatingState
 //import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -70,14 +73,17 @@ fun SettingsScreen() {
     val cardBg = if (isDark) Color.Black else Color.White
 
     var showDialog by remember { mutableStateOf(false) }
-    var netspeedchecked by remember { mutableStateOf(NETNotiState) }
-    var cpumemchecked by remember { mutableStateOf(CMNotiState) }
+    var netspeedchecked by remember { mutableStateOf(NETNotiState || NetFloatingState) }
+    var cpumemchecked by remember { mutableStateOf(CMNotiState || CMFloatingState) }
+    var netfloatingchecked by remember { mutableStateOf(NetFloatingState) }
+    var cpumemfloatingchecked by remember { mutableStateOf(CMFloatingState) }
 
     var cpuselected by remember { mutableIntStateOf(CPUNotiType) }
     var memselected by remember { mutableIntStateOf(MEMNotiType) }
 
     var netslidervalue by remember { mutableLongStateOf(netsamplingtime) }
     var cmslidervalue by remember { mutableLongStateOf(cmsamplingtime) }
+    var fwSizeIndex by remember { mutableIntStateOf(prefs.getInt("FloatingSizeIndex", 0)) }
 
     Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
 
@@ -142,6 +148,17 @@ fun SettingsScreen() {
                         (context as? android.app.Activity)?.recreate()
                     }
                 )
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                OptionSwatchRow(
+                    icon = Icons.Default.OpenWith,
+                    title = "FW Size",
+                    contents = arrayOf("5%", "7.5%", "10%", "12.5%", "15%"),
+                    selectedIndex = fwSizeIndex,
+                    onOptionSelected = {
+                        fwSizeIndex = it
+                        prefs.edit { putInt("FloatingSizeIndex", it) }
+                    }
+                )
             }
 
             Card(
@@ -171,15 +188,58 @@ fun SettingsScreen() {
                     onSwitchChange = {
                         netspeedchecked = it
                         NETNotiState = it
-                        prefs.edit { putBoolean("NETNotiState", it) }   //记录控件状态到实体文件
-                        val intent = Intent(context, NetService::class.java)
-                        when(it){
-                            true -> {context.startForegroundService(intent)
-                                    Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()}
-
-                            false -> {context.stopService(intent)
-                                    Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show()} }
+                        prefs.edit { putBoolean("NETNotiState", it) }
+                        if (it) {
+                            if (!netfloatingchecked) {
+                                NETNotiState = true
+                                prefs.edit { putBoolean("NETNotiState", true) }
+                            }
+                            val intent = Intent(context, NetService::class.java)
+                            context.startForegroundService(intent)
+                            Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()
+                        } else {
+                            netfloatingchecked = false
+                            NetFloatingState = false
+                            prefs.edit { putBoolean("NetFloatingState", false) }
+                            NETNotiState = false
+                            prefs.edit { putBoolean("NETNotiState", false) }
+                            val intent = Intent(context, NetService::class.java)
+                            context.stopService(intent)
+                            Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show()
+                        }
                     },
+                )
+                SettingItem(
+                    icon = Icons.Default.OpenWith,
+                    title = "Net Speed Floating Window",
+                    subtitle = "Show floating window on screen",
+                    hasSwitch = true,
+                    switchScale = 1.2f,
+                    switchState = netfloatingchecked,
+                    enabled = netspeedchecked,
+                    onSwitchChange = {
+                        if (it && !android.provider.Settings.canDrawOverlays(context)) {
+                            Toast.makeText(context, "Please grant overlay permission", Toast.LENGTH_SHORT).show()
+                            val intent = Intent(
+                                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                "package:${context.packageName}".toUri()
+                            )
+                            context.startActivity(intent)
+                        } else {
+                            netfloatingchecked = it
+                            NetFloatingState = it
+                            prefs.edit { putBoolean("NetFloatingState", it) }
+                            if (it) {
+                                NETNotiState = false
+                                prefs.edit { putBoolean("NETNotiState", false) }
+                            } else {
+                                NETNotiState = true
+                                prefs.edit { putBoolean("NETNotiState", true) }
+                            }
+                            val intent = Intent(context, NetService::class.java)
+                            context.startForegroundService(intent)
+                        }
+                    }
                 )
                 ValueSliderBar(
                     title = "Sampling Rate",
@@ -194,7 +254,7 @@ fun SettingsScreen() {
                     modifier = Modifier.padding(
                         start = 24.dp,
                         end = 24.dp,
-                        top = 24.dp,
+                        top = 10.dp,
                         bottom = 10.dp
                     )
                 )
@@ -209,15 +269,58 @@ fun SettingsScreen() {
                     onSwitchChange = {
                         cpumemchecked = it
                         CMNotiState = it
-                        prefs.edit { putBoolean("CMNotiState", it) }   //记录控件状态到实体文件
-                        val intent = Intent(context, CPUMEMNotiService::class.java)
-                        when(it){
-                            true -> {context.startForegroundService(intent)
-                                    Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()}
-                            false -> {context.stopService(intent)
-                                Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show() }
+                        prefs.edit { putBoolean("CMNotiState", it) }
+                        if (it) {
+                            if (!cpumemfloatingchecked) {
+                                CMNotiState = true
+                                prefs.edit { putBoolean("CMNotiState", true) }
+                            }
+                            val intent = Intent(context, CPUMEMNotiService::class.java)
+                            context.startForegroundService(intent)
+                            Toast.makeText(context, "Start Service", Toast.LENGTH_SHORT).show()
+                        } else {
+                            cpumemfloatingchecked = false
+                            CMFloatingState = false
+                            prefs.edit { putBoolean("CMFloatingState", false) }
+                            CMNotiState = false
+                            prefs.edit { putBoolean("CMNotiState", false) }
+                            val intent = Intent(context, CPUMEMNotiService::class.java)
+                            context.stopService(intent)
+                            Toast.makeText(context, "Stop Service", Toast.LENGTH_SHORT).show()
                         }
                     },
+                )
+                SettingItem(
+                    icon = Icons.Default.OpenWith,
+                    title = "CPU/MEM Floating Window",
+                    subtitle = "Show floating window on screen",
+                    hasSwitch = true,
+                    switchScale = 1.2f,
+                    switchState = cpumemfloatingchecked,
+                    enabled = cpumemchecked,
+                    onSwitchChange = {
+                        if (it && !android.provider.Settings.canDrawOverlays(context)) {
+                            Toast.makeText(context, "Please grant overlay permission", Toast.LENGTH_SHORT).show()
+                            val intent = Intent(
+                                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                "package:${context.packageName}".toUri()
+                            )
+                            context.startActivity(intent)
+                        } else {
+                            cpumemfloatingchecked = it
+                            CMFloatingState = it
+                            prefs.edit { putBoolean("CMFloatingState", it) }
+                            if (it) {
+                                CMNotiState = false
+                                prefs.edit { putBoolean("CMNotiState", false) }
+                            } else {
+                                CMNotiState = true
+                                prefs.edit { putBoolean("CMNotiState", true) }
+                            }
+                            val intent = Intent(context, CPUMEMNotiService::class.java)
+                            context.startForegroundService(intent)
+                        }
+                    }
                 )
                 ValueSliderBar(
                     title = "Sampling Rate",
@@ -232,12 +335,10 @@ fun SettingsScreen() {
                     modifier = Modifier.padding(
                         start = 24.dp,
                         end = 24.dp,
-                        top = 24.dp,
+                        top = 10.dp,
                         bottom = 10.dp
                     )
                 )
-
-
             }
             Card(
                 modifier = Modifier

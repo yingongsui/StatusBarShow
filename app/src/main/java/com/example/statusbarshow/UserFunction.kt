@@ -41,6 +41,8 @@ var MEMNotiType = 1
 
 var CMNotiState = false
 var NETNotiState = false
+var NetFloatingState = false
+var CMFloatingState = false
 var CPUDrawState = mutableStateListOf<Boolean>()
 
 // 监听屏幕状态
