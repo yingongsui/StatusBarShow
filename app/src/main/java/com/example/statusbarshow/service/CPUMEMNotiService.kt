@@ -21,6 +21,7 @@ import com.example.statusbarshow.totalcpuusage
 import com.example.statusbarshow.memstate
 import com.example.statusbarshow.screenstate
 import kotlinx.coroutines.*
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 class CPUMEMNotiService : Service() {
@@ -129,8 +130,8 @@ class CPUMEMNotiService : Service() {
                         weightedIdleSum += cpuusage[i][1].toDouble() * weight
                     }
 
-                    totalcpuusage[0] = weightedWorkSum.toInt().coerceIn(0, 100)
-                    totalcpuusage[1] = weightedIdleSum.toInt().coerceIn(0, 100)
+                    totalcpuusage[0] = weightedWorkSum.roundToInt().coerceIn(0, 100)
+                    totalcpuusage[1] = weightedIdleSum.roundToInt().coerceIn(0, 100)
 
                     // 5. 更新通知栏/悬浮窗
                     val memG = arrayOf(memstate[1], memstate[0] - memstate[1])[MEMNotiType].toFloat() / 1024 / 1024
