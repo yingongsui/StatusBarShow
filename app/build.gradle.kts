@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.statusbarshow"
         minSdk = 30
         targetSdk = 36
-        versionCode = 6
-        versionName = "3.1.0"
+        versionCode = 7
+        versionName = "3.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
