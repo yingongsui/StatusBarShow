@@ -74,7 +74,6 @@ class MainActivity : ComponentActivity() {
         val netintent = Intent(this, NetService::class.java)
         val cmnointent = Intent(this, CPUMEMNotiService::class.java)
 
-
         if (NETNotiState || NetFloatingState) {
             this.startForegroundService(netintent)
         } else {

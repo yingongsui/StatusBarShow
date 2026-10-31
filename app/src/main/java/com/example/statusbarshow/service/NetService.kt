@@ -9,11 +9,11 @@ import android.net.TrafficStats
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
+import com.example.statusbarshow.FloatingWindowHelper
 import com.example.statusbarshow.LogUtils
 import com.example.statusbarshow.MyFunction
 import com.example.statusbarshow.NETNotiState
 import com.example.statusbarshow.NetFloatingState
-import com.example.statusbarshow.FloatingWindowHelper
 import com.example.statusbarshow.netsamplingtime
 import com.example.statusbarshow.netspeedRx
 import com.example.statusbarshow.netspeedTx
@@ -25,8 +25,9 @@ class NetService : Service() {
 
     private val channelId = "net_channel"
     private var notificationManager: NotificationManager? = null
+    private val floatingHelper by lazy { FloatingWindowHelper(this) }
+    private val baseWhen = System.currentTimeMillis()
 
-    // 使用 SupervisorJob 防止单个任务失败导致整个作用域崩溃
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private var monitorJob: Job? = null
@@ -37,7 +38,6 @@ class NetService : Service() {
         super.onCreate()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        // ZUI/国产ROM 适配：重要性设为 IMPORTANCE_LOW 防止状态栏弹出横幅干扰
         val channel = NotificationChannel(channelId, "NET Channel", NotificationManager.IMPORTANCE_LOW).apply {
             setSound(null, null)
             enableVibration(false)
@@ -46,7 +46,6 @@ class NetService : Service() {
         }
         notificationManager?.createNotificationChannel(channel)
 
-        // 启动前台，初始显示占位
         startForeground(2, updateNotification(arrayOf("0", "KB/s"), "0 KB/s", "0 KB/s"))
         if (NetFloatingState) {
             floatingHelper.show(arrayOf("0", "KB/s"))
@@ -56,10 +55,12 @@ class NetService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (monitorJob?.isActive != true) {
             monitorJob = serviceScope.launch {
-                // 记录上次总流量，避免在循环内多次 delay 导致计算不准
                 var lastRxBytes = TrafficStats.getTotalRxBytes()
                 var lastTxBytes = TrafficStats.getTotalTxBytes()
                 var lastTime = System.currentTimeMillis()
+                var lastDisplayData: Array<String>? = null
+                var lastRxStr = ""
+                var lastTxStr = ""
 
                 while (NETNotiState || NetFloatingState) {
                     if (!screenstate) {
@@ -75,16 +76,12 @@ class NetService : Service() {
                         continue
                     }
 
-                    // 1. 获取当前流量和时间
                     val currentRxBytes = TrafficStats.getTotalRxBytes()
                     val currentTxBytes = TrafficStats.getTotalTxBytes()
                     val currentTime = System.currentTimeMillis()
 
-                    // 2. 计算间隔（防止除以0）
-                    val timeDelta = (currentTime - lastTime) / 1000f // 转换为秒
+                    val timeDelta = (currentTime - lastTime) / 1000f
                     if (timeDelta > 0 && lastRxBytes > 0) {
-
-                        // 计算下行和上行速率 (B/s)
                         val rxSpeed = (currentRxBytes - lastRxBytes) / timeDelta
                         val txSpeed = (currentTxBytes - lastTxBytes) / timeDelta
 
@@ -93,21 +90,17 @@ class NetService : Service() {
 
                         val totalSpeedKB = netspeedRx.floatValue + netspeedTx.floatValue
 
-                        // 3. 动态选择单位并更新通知/悬浮窗 (四项精确规则)
                         val displayData = when {
-                            totalSpeedKB >= 1024 * 100 -> { // >= 100 MB/s -> 不保留小数
+                            totalSpeedKB >= 1024 * 100 -> {
                                 val mb = totalSpeedKB / 1024f
-                                if (mb >= 1024) {
-                                    arrayOf("%.1f".format(mb / 1024f), "GB/s")
-                                } else {
-                                    arrayOf("%.0f".format(mb), "MB/s")
-                                }
+                                if (mb >= 1024) arrayOf("%.1f".format(mb / 1024f), "GB/s")
+                                else arrayOf("%.0f".format(mb), "MB/s")
                             }
-                            totalSpeedKB >= 1000f -> { // >= 1000 KB/s 且 < 100 MB/s -> MB/s，保留 1 位小数
+                            totalSpeedKB >= 1000f -> {
                                 val mb = totalSpeedKB / 1024f
                                 arrayOf("%.1f".format(mb), "MB/s")
                             }
-                            else -> { // 0.0 KB/s ~ 999 KB/s -> KB/s 整数
+                            else -> {
                                 arrayOf("%.0f".format(totalSpeedKB), "KB/s")
                             }
                         }
@@ -118,9 +111,15 @@ class NetService : Service() {
                         val txStr = if (txKB >= 1024) "%.1f MB/s".format(txKB / 1024f) else "%.0f KB/s".format(txKB)
 
                         if (NETNotiState) {
-                            notificationManager?.notify(2, updateNotification(displayData, rxStr, txStr))
+                            if (!displayData.contentEquals(lastDisplayData) || rxStr != lastRxStr || txStr != lastTxStr) {
+                                notificationManager?.notify(2, updateNotification(displayData, rxStr, txStr))
+                                lastDisplayData = displayData
+                                lastRxStr = rxStr
+                                lastTxStr = txStr
+                            }
                         } else {
                             notificationManager?.cancel(2)
+                            lastDisplayData = null
                         }
 
                         if (NetFloatingState) {
@@ -135,7 +134,6 @@ class NetService : Service() {
                         }
                     }
 
-                    // 4. 更新历史记录点
                     lastRxBytes = currentRxBytes
                     lastTxBytes = currentTxBytes
                     lastTime = currentTime
@@ -150,8 +148,6 @@ class NetService : Service() {
         return START_STICKY
     }
 
-    private val floatingHelper by lazy { FloatingWindowHelper(this) }
-
     override fun onDestroy() {
         floatingHelper.hide()
         serviceJob.cancel()
@@ -165,16 +161,17 @@ class NetService : Service() {
 
         return NotificationCompat.Builder(this, channelId)
             .setSmallIcon(IconCompat.createWithBitmap(bitmap))
-            //.setLargeIcon(bitmap)
             .setContentTitle("Net Speed")
             .setContentText("↓: $rxStr   ↑: $txStr")
-            // 设为 PRIORITY_LOW 以便在状态栏安静显示数字，不产生横幅
+            .setGroup("GROUP_SPEED")
+            .setSortKey("2")
+            .setWhen(baseWhen)
+            .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(Notification.CATEGORY_STATUS)
             .setOngoing(true)
-            .setSilent(true) // 强制静音，避免频繁通知导致的系统卡顿
+            .setSilent(true)
             .setOnlyAlertOnce(true)
-            .setShowWhen(false)
             .build()
     }
 }
