@@ -66,7 +66,7 @@ class FloatingWindowHelper(private val context: Context) {
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
+            PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = savedX
@@ -100,12 +100,12 @@ class FloatingWindowHelper(private val context: Context) {
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.Black.copy(alpha = 0.5f))
                             .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                            .padding(1.dp)
+                            .padding(1.dp),
                     ) {
                         val currentValues = valuesState.value
 
                         Column(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         ) {
 
                             // 主数字
@@ -113,7 +113,7 @@ class FloatingWindowHelper(private val context: Context) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(6f),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = currentValues.getOrElse(0) { "" },
@@ -124,13 +124,13 @@ class FloatingWindowHelper(private val context: Context) {
                                     color = Color.White,
                                     style = TextStyle(
                                         platformStyle = PlatformTextStyle(
-                                            includeFontPadding = false
-                                        )
+                                            includeFontPadding = false,
+                                        ),
                                     ),
                                     modifier = Modifier.graphicsLayer {
                                         scaleX = 0.95f
                                         scaleY = 1.3f
-                                    }
+                                    },
                                 )
                             }
 
@@ -139,7 +139,7 @@ class FloatingWindowHelper(private val context: Context) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(4f),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = currentValues.getOrElse(1) { "" },
@@ -150,12 +150,12 @@ class FloatingWindowHelper(private val context: Context) {
                                     color = Color.LightGray,
                                     style = TextStyle(
                                         platformStyle = PlatformTextStyle(
-                                            includeFontPadding = false
-                                        )
+                                            includeFontPadding = false,
+                                        ),
                                     ),
                                     modifier = Modifier.graphicsLayer {
                                         scaleX = 0.9f
-                                    }
+                                    },
                                 )
                             }
                         }

@@ -33,10 +33,14 @@ fun HomeScreen() {
     val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
     var columnWidth by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
-        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).onGloballyPositioned { layoutCoordinates ->
-            columnWidth = layoutCoordinates.size.width // 单位是像素 px
-        }
+    Box(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 20.dp), contentAlignment = Alignment.TopCenter) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .onGloballyPositioned { layoutCoordinates ->
+                    columnWidth = layoutCoordinates.size.width // 单位是像素 px
+                },
         ) {
             Text(
                 text = "CPU Usage",
@@ -45,22 +49,20 @@ fun HomeScreen() {
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
-
+                    .padding(top = 10.dp),
             )
-            UsageGraph("CPU", 20, 1f, columnWidth/16*9, true, 2, "C")
+            UsageGraph("CPU", 20, 1f, (columnWidth / 16) * 9, axisON = true, 2, "C")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(10.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
             ) {
-                (0..(corenum/2)).forEach {
-                        val name = " CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
-                        Box(modifier = Modifier.weight(1f)){
-                            UsageGraph( name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
-
-                        }
+                (0..(corenum / 2)).forEach {
+                    val name = " CPU$it\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
+                    Box(modifier = Modifier.weight(1f)) {
+                        UsageGraph(name, 10, 1f, (columnWidth / ((corenum / 2) + 1)), axisON = false, 1, "C$it")
+                    }
                 }
 
             }
@@ -69,12 +71,12 @@ fun HomeScreen() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(10.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
             ) {
-                ((corenum/2)+1..corenum).forEach {
-                    val name = " CPU${it}\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
-                    Box(modifier = Modifier.weight(1f)){
-                        UsageGraph(name, 10, 1f, columnWidth/(corenum/2+1), false, 1, "C$it")
+                (((corenum / 2) + 1)..corenum).forEach {
+                    val name = " CPU$it\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
+                    Box(modifier = Modifier.weight(1f)) {
+                        UsageGraph(name, 10, 1f, (columnWidth / ((corenum / 2) + 1)), axisON = false, 1, "C$it")
                     }
                 }
 
@@ -87,11 +89,10 @@ fun HomeScreen() {
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
-
+                    .padding(top = 10.dp),
             )
 
-            UsageGraph("Memory", 20, 1f, columnWidth/16*9, true, 1, "M")
+            UsageGraph("Memory", 20, 1f, (columnWidth / 16) * 9, axisON = true, 1, "M")
 
             HorizontalDivider(Modifier, thickness = 3.dp, DividerDefaults.color)
             Text(
@@ -101,10 +102,10 @@ fun HomeScreen() {
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
+                    .padding(top = 10.dp),
             )
 
-            UsageGraph("Net Speed", 20, 1f, columnWidth/16*9, true, 2, "N")
+            UsageGraph("Net Speed", 20, 1f, (columnWidth / 16) * 9, axisON = true, 2, "N")
         }
 
     }

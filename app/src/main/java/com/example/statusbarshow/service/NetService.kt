@@ -81,7 +81,7 @@ class NetService : Service() {
                     val currentTime = System.currentTimeMillis()
 
                     val timeDelta = (currentTime - lastTime) / 1000f
-                    if (timeDelta > 0 && lastRxBytes > 0) {
+                    if ((timeDelta > 0) && (lastRxBytes > 0)) {
                         val rxSpeed = (currentRxBytes - lastRxBytes) / timeDelta
                         val txSpeed = (currentTxBytes - lastTxBytes) / timeDelta
 
@@ -91,7 +91,7 @@ class NetService : Service() {
                         val totalSpeedKB = netspeedRx.floatValue + netspeedTx.floatValue
 
                         val displayData = when {
-                            totalSpeedKB >= 1024 * 100 -> {
+                            totalSpeedKB >= (1024 * 100) -> {
                                 val mb = totalSpeedKB / 1024f
                                 if (mb >= 1024) arrayOf("%.1f".format(mb / 1024f), "GB/s")
                                 else arrayOf("%.0f".format(mb), "MB/s")
@@ -111,7 +111,7 @@ class NetService : Service() {
                         val txStr = if (txKB >= 1024) "%.1f MB/s".format(txKB / 1024f) else "%.0f KB/s".format(txKB)
 
                         if (NETNotiState) {
-                            if (!displayData.contentEquals(lastDisplayData) || rxStr != lastRxStr || txStr != lastTxStr) {
+                            if ((!displayData.contentEquals(lastDisplayData)) || (rxStr != lastRxStr) || (txStr != lastTxStr)) {
                                 notificationManager?.notify(2, updateNotification(displayData, rxStr, txStr))
                                 lastDisplayData = displayData
                                 lastRxStr = rxStr

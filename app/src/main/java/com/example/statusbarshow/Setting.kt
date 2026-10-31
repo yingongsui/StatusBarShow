@@ -72,7 +72,7 @@ fun SettingsScreen() {
     val isDark = prefs.getInt("AppThemeMode", 0) == 0
     val cardBg = if (isDark) Color.Black else Color.White
 
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(value = false) }
     var netspeedchecked by remember { mutableStateOf(NETNotiState || NetFloatingState) }
     var cpumemchecked by remember { mutableStateOf(CMNotiState || CMFloatingState) }
     var netfloatingchecked by remember { mutableStateOf(NetFloatingState) }
@@ -85,23 +85,22 @@ fun SettingsScreen() {
     var cmslidervalue by remember { mutableLongStateOf(cmsamplingtime) }
     var fwSizeIndex by remember { mutableIntStateOf(prefs.getInt("FloatingSizeIndex", 0)) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 20.dp), contentAlignment = Alignment.TopCenter) {
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
             modifier = Modifier
-                .padding(top=10.dp)
+                .padding(top = 10.dp)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
         ) {
             Text(
                 text = "Setting",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                modifier = Modifier.fillMaxWidth()
-
+                modifier = Modifier.fillMaxWidth(),
             )
             Card(
                 modifier = Modifier
@@ -117,48 +116,44 @@ fun SettingsScreen() {
                     modifier = Modifier.padding(16.dp),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 ThemeSwatchRow(
                     title = "Theme",
                     selectedIndex = prefs.getInt("AppThemeMode", 0),
-                    onThemeSelected = {
-                        prefs.edit { putInt("AppThemeMode", it) }
-                        (context as? android.app.Activity)?.recreate()
-                    }
-                )
+                ) {
+                    prefs.edit { putInt("AppThemeMode", it) }
+                    (context as? android.app.Activity)?.recreate()
+                }
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 ColorPickerRow(
                     title = "Main Color",
                     colors = AppCurveColors,
                     selectedIndex = prefs.getInt("AppCurveColor", 0),
-                    onColorSelected = {
-                        prefs.edit { putInt("AppCurveColor", it) }
-                        (context as? android.app.Activity)?.recreate()
-                    }
-                )
+                ) {
+                    prefs.edit { putInt("AppCurveColor", it) }
+                    (context as? android.app.Activity)?.recreate()
+                }
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 ColorPickerRow(
                     title = "Sub Color",
                     colors = AppCurveColors,
                     selectedIndex = prefs.getInt("AppCurveColor2", 1),
-                    onColorSelected = {
-                        prefs.edit { putInt("AppCurveColor2", it) }
-                        (context as? android.app.Activity)?.recreate()
-                    }
-                )
+                ) {
+                    prefs.edit { putInt("AppCurveColor2", it) }
+                    (context as? android.app.Activity)?.recreate()
+                }
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 OptionSwatchRow(
                     icon = Icons.Default.OpenWith,
                     title = "FW Size",
                     contents = arrayOf("5%", "7.5%", "10%", "12.5%", "15%"),
                     selectedIndex = fwSizeIndex,
-                    onOptionSelected = {
-                        fwSizeIndex = it
-                        prefs.edit { putInt("FloatingSizeIndex", it) }
-                    }
-                )
+                ) {
+                    fwSizeIndex = it
+                    prefs.edit { putInt("FloatingSizeIndex", it) }
+                }
             }
 
             Card(
@@ -173,9 +168,9 @@ fun SettingsScreen() {
                 Text(
                     text = "Monitor Setting",
                     modifier = Modifier.padding(16.dp),
-                    fontSize = 30.sp ,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 SettingItem(
@@ -222,7 +217,7 @@ fun SettingsScreen() {
                             Toast.makeText(context, "Please grant overlay permission", Toast.LENGTH_SHORT).show()
                             val intent = Intent(
                                 android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                "package:${context.packageName}".toUri()
+                                "package:${context.packageName}".toUri(),
                             )
                             context.startActivity(intent)
                         } else {
@@ -239,7 +234,7 @@ fun SettingsScreen() {
                             val intent = Intent(context, NetService::class.java)
                             context.startForegroundService(intent)
                         }
-                    }
+                    },
                 )
                 ValueSliderBar(
                     title = "Sampling Rate",
@@ -255,8 +250,8 @@ fun SettingsScreen() {
                         start = 24.dp,
                         end = 24.dp,
                         top = 10.dp,
-                        bottom = 10.dp
-                    )
+                        bottom = 10.dp,
+                    ),
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 SettingItem(
@@ -303,7 +298,7 @@ fun SettingsScreen() {
                             Toast.makeText(context, "Please grant overlay permission", Toast.LENGTH_SHORT).show()
                             val intent = Intent(
                                 android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                "package:${context.packageName}".toUri()
+                                "package:${context.packageName}".toUri(),
                             )
                             context.startActivity(intent)
                         } else {
@@ -320,7 +315,7 @@ fun SettingsScreen() {
                             val intent = Intent(context, CPUMEMNotiService::class.java)
                             context.startForegroundService(intent)
                         }
-                    }
+                    },
                 )
                 ValueSliderBar(
                     title = "Sampling Rate",
@@ -336,8 +331,8 @@ fun SettingsScreen() {
                         start = 24.dp,
                         end = 24.dp,
                         top = 10.dp,
-                        bottom = 10.dp
-                    )
+                        bottom = 10.dp,
+                    ),
                 )
             }
             Card(
@@ -352,9 +347,9 @@ fun SettingsScreen() {
                 Text(
                     text = "Notification Setting",
                     modifier = Modifier.padding(16.dp),
-                    fontSize = 30.sp ,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
                 )
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 OptionSwatchRow(
@@ -362,22 +357,22 @@ fun SettingsScreen() {
                     title = "CPU",
                     contents = arrayOf("Norm-Usage", "Usage"),
                     selectedIndex = cpuselected,
-                    onOptionSelected = {
-                        cpuselected = it
-                        prefs.edit { putInt("CPUNotiType", it) }
-                        CPUNotiType = it
-                    })
+                ) {
+                    cpuselected = it
+                    prefs.edit { putInt("CPUNotiType", it) }
+                    CPUNotiType = it
+                }
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 OptionSwatchRow(
                     icon = Icons.Default.Extension,
                     title = "MEM",
                     contents = arrayOf("Available", "Used"),
                     selectedIndex = memselected,
-                    onOptionSelected = {
-                        memselected = it
-                        prefs.edit { putInt("MEMNotiType", it) }
-                        MEMNotiType = it
-                    })
+                ) {
+                    memselected = it
+                    prefs.edit { putInt("MEMNotiType", it) }
+                    MEMNotiType = it
+                }
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
 
@@ -397,9 +392,9 @@ fun SettingsScreen() {
                 Text(
                     text = "About",
                     modifier = Modifier.padding(16.dp),
-                    fontSize = 30.sp ,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
                 )
 
             }
@@ -411,47 +406,47 @@ fun SettingsScreen() {
                             text = "StatusBarShow",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.Monospace,
                         )
                     },
                     text = {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(rememberScrollState()),
                         ) {
                             Text(
                                 text = "Version " + context.getString(R.string.appversion),
                                 fontSize = 14.sp,
                                 color = Color.Gray,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                modifier = Modifier.padding(bottom = 8.dp),
                             )
                             Text(
                                 text = "A lightweight system monitor providing real-time CPU, Memory, and Network speed statistics right in your status bar.",
                                 fontSize = 14.sp,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                modifier = Modifier.padding(bottom = 12.dp),
                             )
                             Text(
                                 text = "Quick Tips:",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                modifier = Modifier.padding(bottom = 4.dp),
                             )
                             Text(
                                 text = "• Long press graphs: Toggle history\n• Double tap graphs: Switch metric lines",
                                 fontSize = 13.sp,
                                 color = Color.Gray,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                modifier = Modifier.padding(bottom = 12.dp),
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "Source code: ",
                                     fontSize = 14.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = FontFamily.Monospace,
                                 )
                                 Text(
                                     text = buildAnnotatedString {
@@ -460,8 +455,8 @@ fun SettingsScreen() {
                                                 color = DodgerBlue,
                                                 fontStyle = FontStyle.Italic,
                                                 fontSize = 14.sp,
-                                                textDecoration = TextDecoration.Underline
-                                            )
+                                                textDecoration = TextDecoration.Underline,
+                                            ),
                                         ) {
                                             append("GitHub")
                                         }
@@ -471,7 +466,7 @@ fun SettingsScreen() {
                                             val intent = Intent(Intent.ACTION_VIEW, it.toUri())
                                             context.startActivity(intent)
                                         }
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -480,7 +475,7 @@ fun SettingsScreen() {
                         TextButton(onClick = { showDialog = false }) {
                             Text("Close", fontFamily = FontFamily.Monospace)
                         }
-                    }
+                    },
                 )
             }
 

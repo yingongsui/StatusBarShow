@@ -125,19 +125,19 @@ fun MainScreen() {
                                 selectedIconColor = Color.White,
                                 unselectedIconColor = Color.Gray,
                                 selectedTextColor = Color.White,
-                                indicatorColor = DodgerBlue.copy(alpha = 0.3f)
-                            )
+                                indicatorColor = DodgerBlue.copy(alpha = 0.3f),
+                            ),
 
                         )
                     }
                 }
             }
-        }
+        },
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Profile.route) { InformationScreen() }
@@ -151,7 +151,7 @@ fun MainScreen() {
 @Composable
 fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: Boolean, linenum: Int, type: String) {
     val textMeasurer = rememberTextMeasurer()
-    var historyON by remember { mutableStateOf(false) }
+    var historyON by remember { mutableStateOf(value = false) }
     val context = LocalContext.current
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
@@ -172,7 +172,7 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
                     .split(" ")
                     .map { it.toFloat() }
                     .toFloatArray()
-            }
+            },
         )
     }
 
@@ -193,12 +193,12 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             }
         }
 
-        points = points.map { rowArray ->
+        points = points.asSequence().mapIndexed { idx, rowArray ->
             val newRow = rowArray.copyOf()
             for (i in 0 until pointNum) {
                 newRow[i] = newRow[i + 1]
             }
-            newRow[pointNum] = newValues.getOrElse(points.indexOf(rowArray)) { 0f }
+            newRow[pointNum] = newValues.getOrElse(idx) { 0f }
             newRow
         }.toMutableList()
 
@@ -248,9 +248,9 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { toggleHistory() },
-                    onDoubleTap = { linetype = if (linetype == 0) 1 else 0 }
+                    onDoubleTap = { linetype = if (linetype == 0) 1 else 0 },
                 )
-            }
+            },
     ) {
         val originX = if (axisON) size.width / 20 else 5f
         val endY = if (axisON) size.height / 20 else 5f
@@ -278,8 +278,8 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             when {
                 maxVal <= 500f -> 500f
                 maxVal <= 1024f -> 1024f
-                maxVal <= 1024f * 10f -> 1024f * 10f
-                maxVal <= 1024f * 100f -> 1024f * 100f
+                maxVal <= (1024f * 10f) -> 1024f * 10f
+                maxVal <= (1024f * 100f) -> 1024f * 100f
                 else -> maxVal * 1.2f
             }
         } else {
@@ -292,12 +292,12 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             drawText(
                 textMeasurer,
                 name,
-                Offset(endX / 10F * 2.5F, originY / 10F * 3F),
+                Offset((endX / 10F) * 2.5F, (originY / 10F) * 3F),
                 TextStyle(
                     fontSize = (height / dynamicDivisor).sp,
                     color = Color.Gray.copy(alpha = 0.3f),
-                    fontFamily = FontFamily.Monospace
-                )
+                    fontFamily = FontFamily.Monospace,
+                ),
             )
         } else {
             val unitText = if (isNet) {
@@ -305,23 +305,23 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             } else {
                 "(%)"
             }
-            drawText(textMeasurer, unitText, Offset(originX, endY - size.height / 15), TextStyle(fontSize = 10.sp, color = Color.Gray))
+            drawText(textMeasurer, unitText, Offset(originX, endY - (size.height / 15f)), TextStyle(fontSize = 10.sp, color = Color.Gray))
         }
 
         // X轴刻度
         for (i in 0..pointNum) {
-            val x = originX + i * xscale
+            val x = originX + (i * xscale)
             drawLine(color = Color.Gray, start = Offset(x, originY - 5f), end = Offset(x, originY + 5f), strokeWidth = 2f, cap = StrokeCap.Round)
             drawLine(color = Color.Gray, start = Offset(x, endY - 5f), end = Offset(x, endY + 5f), strokeWidth = 2f, cap = StrokeCap.Round)
         }
 
         // Y轴刻度
         for (i in 0..10) {
-            val y = originY - i * yscale
+            val y = originY - (i * yscale)
             drawLine(color = Color.Gray, start = Offset(originX - 5f, y), end = Offset(originX + 5f, y), strokeWidth = 2f, cap = StrokeCap.Round)
             drawLine(color = Color.Gray, start = Offset(endX - 5f, y), end = Offset(endX + 5f, y), strokeWidth = 2f, cap = StrokeCap.Round)
 
-            if (i % 2 == 0 && axisON) {
+            if (((i % 2) == 0) && axisON) {
                 val labelText = if (isNet) {
                     val valKb = (maxY / 10f) * i
                     if (maxY == 1024f) {
@@ -335,13 +335,13 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
                         "%.0f".format(valKb)
                     }
                 } else {
-                    "${i * 10}"
+                    (i * 10).toString()
                 }
                 drawText(
                     textMeasurer = textMeasurer,
                     text = labelText,
                     topLeft = Offset(0f, y - 15f),
-                    style = TextStyle(fontSize = 9.sp, color = Color.Gray)
+                    style = TextStyle(fontSize = 9.sp, color = Color.Gray),
                 )
             }
         }
@@ -352,19 +352,19 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             path[itIdx].reset()
             val raw0 = points[itIdx][0]
             val norm0 = if (isNet) (raw0 / maxY).coerceIn(0f, 1f) else (raw0 / 100f).coerceIn(0f, 1f)
-            path[itIdx].moveTo(originX, originY - norm0 * 10 * yscale)
+            path[itIdx].moveTo(originX, originY - (norm0 * 10 * yscale))
             for (i in 0..pointNum) {
                 val rawVal = points[itIdx][i]
                 val normVal = if (isNet) (rawVal / maxY).coerceIn(0f, 1f) else (rawVal / 100f).coerceIn(0f, 1f)
                 path[itIdx].lineTo(
-                    originX + i * xscale,
-                    originY - normVal * 10 * yscale
+                    originX + (i * xscale),
+                    originY - (normVal * 10 * yscale),
                 )
             }
             drawPath(
                 path = path[itIdx],
                 color = paintColor[if (number.isNotEmpty()) linetype else itIdx],
-                style = Stroke(width = 5f, cap = StrokeCap.Round)
+                style = Stroke(width = 5f, cap = StrokeCap.Round),
             )
         }
     }
@@ -376,18 +376,18 @@ fun SettingItem(
     title: String,
     subtitle: String? = null,
     hasSwitch: Boolean = false,
-    switchScale:Float = 1f,
+    switchScale: Float = 1f,
     switchState: Boolean = false,
     enabled: Boolean = true,
     onSwitchChange: ((Boolean) -> Unit)? = null,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(30.dp))
 
@@ -396,16 +396,16 @@ fun SettingItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
             subtitle?.let {
-                Text(text = it, fontSize = 15.sp, color = Color.Gray,overflow = TextOverflow.Clip, fontFamily = FontFamily.Monospace)
+                Text(text = it, fontSize = 15.sp, color = Color.Gray, overflow = TextOverflow.Clip, fontFamily = FontFamily.Monospace)
             }
         }
 
-        if (hasSwitch && onSwitchChange != null) {
+        if (hasSwitch && (onSwitchChange != null)) {
             Switch(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
                 enabled = enabled,
-                modifier = Modifier.scale(switchScale)
+                modifier = Modifier.scale(switchScale),
             )
         }
     }
@@ -417,13 +417,13 @@ fun ColorPickerRow(
     title: String,
     colors: List<Color>,
     selectedIndex: Int,
-    onColorSelected: (Int) -> Unit
+    onColorSelected: (Int) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(5.dp))
@@ -435,12 +435,12 @@ fun ColorPickerRow(
             fontSize = 18.sp,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
         )
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             colors.forEachIndexed { index, color ->
                 val isSelected = (index == selectedIndex)
@@ -452,9 +452,9 @@ fun ColorPickerRow(
                         .border(
                             width = if (isSelected) 3.dp else 2.dp,
                             color = if (isSelected) Color.White else Color.Gray,
-                            shape = RoundedCornerShape(6.dp)
+                            shape = RoundedCornerShape(6.dp),
                         )
-                        .clickable { onColorSelected(index) }
+                        .clickable { onColorSelected(index) },
                 )
             }
         }
@@ -466,7 +466,7 @@ fun ColorPickerRow(
 fun ThemeSwatchRow(
     title: String,
     selectedIndex: Int,
-    onThemeSelected: (Int) -> Unit
+    onThemeSelected: (Int) -> Unit,
 ) {
     val themes = listOf("Dark", "Light")
 
@@ -474,7 +474,7 @@ fun ThemeSwatchRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Default.Brightness4, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(5.dp))
@@ -486,12 +486,12 @@ fun ThemeSwatchRow(
             fontSize = 18.sp,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
         )
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             themes.forEachIndexed { index, name ->
                 val isSelected = (index == selectedIndex)
@@ -507,17 +507,17 @@ fun ThemeSwatchRow(
                         .border(
                             width = if (isSelected) 4.dp else 2.dp,
                             color = if (isSelected) Color.White else Color.Gray,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
                         )
                         .clickable { onThemeSelected(index) },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = name,
                         fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
-                        color = textColor
+                        color = textColor,
                     )
                 }
             }
@@ -532,7 +532,7 @@ fun OptionSwatchRow(
     title: String,
     contents: Array<String>,
     selectedIndex: Int,
-    onOptionSelected: (Int) -> Unit
+    onOptionSelected: (Int) -> Unit,
 ) {
     val prefs = LocalContext.current.getSharedPreferences("MyPrefs", MODE_PRIVATE)
     val colorIndex1 = prefs.getInt("AppCurveColor", 0)
@@ -544,7 +544,7 @@ fun OptionSwatchRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(5.dp))
@@ -556,12 +556,12 @@ fun OptionSwatchRow(
             fontFamily = FontFamily.Monospace,
             maxLines = 2,
             softWrap = true,
-            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f)
+            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
         )
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             contents.forEachIndexed { index, text ->
                 val isSelected = (index == selectedIndex)
@@ -581,10 +581,10 @@ fun OptionSwatchRow(
                         .border(
                             width = if (isSelected) 3.dp else 2.dp,
                             color = if (isSelected) activeColor else Color.Gray,
-                            shape = RoundedCornerShape(6.dp)
+                            shape = RoundedCornerShape(6.dp),
                         )
                         .clickable { onOptionSelected(index) },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = text,
@@ -593,7 +593,7 @@ fun OptionSwatchRow(
                         fontWeight = FontWeight.Bold,
                         color = if (isSelected) Color.White else Color.Gray,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
                     )
                 }
             }
@@ -608,7 +608,7 @@ fun ValueSliderBar(
     value: Float,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float> = 500f..3000f,
-    unit: String = ""
+    unit: String = "",
 ) {
     var sliderWidthPx by remember { mutableIntStateOf(0) }// 获取slider宽度
 
@@ -620,7 +620,6 @@ fun ValueSliderBar(
                 fontSize = 20.sp,
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.bodyLarge,
-    //                    modifier = Modifier.padding(end = 230.dp)
             )
             // 滑条
             Slider(
@@ -632,16 +631,16 @@ fun ValueSliderBar(
                     .onGloballyPositioned { coordinates ->
                         sliderWidthPx = coordinates.size.width
                     },
-                steps = 4
+                steps = 4,
             )
 
             Box(
                 modifier = Modifier
                     .offset {
-                        val pxOffset= (-21.dp.toPx() + sliderWidthPx * (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).toInt()
+                        val pxOffset = ((-21.dp.toPx()) + ((sliderWidthPx * (value - valueRange.start)) / (valueRange.endInclusive - valueRange.start))).toInt()
                         IntOffset(pxOffset, 0)
-                    } ,
-                contentAlignment = Alignment.Center
+                    },
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "${value.toInt()}$unit",
@@ -653,7 +652,7 @@ fun ValueSliderBar(
                     modifier = Modifier
                         .background(Color.Black, shape = RoundedCornerShape(10.dp))
                         .border(1.dp, Color.Gray, shape = RoundedCornerShape(10.dp))
-                        .width(42.dp)
+                        .width(42.dp),
                 )
             }
 

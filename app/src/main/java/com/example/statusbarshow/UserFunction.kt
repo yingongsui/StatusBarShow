@@ -101,7 +101,7 @@ object MyFunction {
         val path = Path()
         paint.getTextPath(text, 0, text.length, 0f, 0f, path)
         val b = RectF().also { path.computeBounds(it, true) }
-        if (refB.width() <= 0f || refB.height() <= 0f || b.height() <= 0f) return
+        if ((refB.width() <= 0f) || (refB.height() <= 0f) || (b.height() <= 0f)) return
 
         val sy = dst.height() / refB.height()
         val sx = minOf(dst.width() / refB.width(), sy * maxStretch)

@@ -39,23 +39,21 @@ fun InformationScreen() {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Text(
                 text = "CPU Information",
-                fontSize = 25.sp ,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
-
+                    .padding(top = 10.dp),
             )
 
-            (0 .. prefs.getInt("CPUCoreNumber",0)).forEach {
-                term->
+            (0..prefs.getInt("CPUCoreNumber", 0)).forEach { term ->
                 SettingItem(
                     icon = Icons.Default.Memory,
                     title = "CPU$term",
                     subtitle = "%.2f".format(prefs.getLong("CPU${term}MaxFreq", 0).toFloat() / 1000f / 1000f) + "GHz "
                             + MyFunction.getCPUArch(
-                        prefs.getString("CPU$term", "").toString()
+                        prefs.getString("CPU$term", "").toString(),
                     ),
                     hasSwitch = true,
                     switchState = CPUDrawState[term],
@@ -71,13 +69,12 @@ fun InformationScreen() {
 
             Text(
                 text = "Memory Information",
-                fontSize = 25.sp ,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
-
+                    .padding(top = 10.dp),
             )
             SettingItem(
                 icon = Icons.Default.Memory,
@@ -86,8 +83,7 @@ fun InformationScreen() {
                     MyFunction.getCPUArch(prefs.getString("TotalMemory", "").toString())
                         .toLong() / 1000
                 } MB",
-                onClick = { /* 跳转语言设置 */ }
-            )
+            ) { /* 跳转语言设置 */ }
         }
 
     }

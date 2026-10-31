@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    1001 // 请求码，可自定义
+                    1001, // 请求码，可自定义
                 )
             }
         }

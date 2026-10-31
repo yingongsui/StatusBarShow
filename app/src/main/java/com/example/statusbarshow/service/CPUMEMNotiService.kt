@@ -44,7 +44,7 @@ class CPUMEMNotiService : Service() {
         val channel = NotificationChannel(
             channelId,
             "CPUMEM Channel",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
             setSound(null, null)
             enableVibration(false)
@@ -100,8 +100,8 @@ class CPUMEMNotiService : Service() {
                     for (i in 0..coreNumber) {
                         val timeDelta = allCpuTime2[i][2] - allCpuTime1[i][2]
                         if (timeDelta > 0) {
-                            val rawUsage1 = (allCpuTime2[i][1] - allCpuTime1[i][1]) * 100 / timeDelta
-                            val rawUsage2 = 100 - (allCpuTime2[i][0] - allCpuTime1[i][0]) * 100 / timeDelta
+                            val rawUsage1 = ((allCpuTime2[i][1] - allCpuTime1[i][1]) * 100) / timeDelta
+                            val rawUsage2 = 100 - (((allCpuTime2[i][0] - allCpuTime1[i][0]) * 100) / timeDelta)
 
                             cpuusage[i][0] = rawUsage1.coerceIn(0L, 100L).toInt()
                             cpuusage[i][1] = rawUsage2.coerceIn(0L, 100L).toInt()
@@ -122,7 +122,7 @@ class CPUMEMNotiService : Service() {
                     val memG = arrayOf(memstate[1], memstate[0] - memstate[1])[MEMNotiType].toFloat() / 1024 / 1024
                     val displayValues = arrayOf(
                         "%02d%%".format(totalcpuusage[CPUNotiType]),
-                        "%.1fG".format(memG)
+                        "%.1fG".format(memG),
                     )
 
                     if (CMNotiState) {

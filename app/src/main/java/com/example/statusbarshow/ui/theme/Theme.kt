@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontFamily
 
 @Composable
 fun StatusBarShowTheme(
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("MyPrefs", android.content.Context.MODE_PRIVATE)
@@ -56,7 +56,7 @@ fun StatusBarShowTheme(
             surface = Color.Black,
             onPrimary = Color.White,
             onBackground = Color.White,
-            onSurface = Color.White
+            onSurface = Color.White,
         )
     } else {
         lightColorScheme(
@@ -65,17 +65,17 @@ fun StatusBarShowTheme(
             surface = Color.White,
             onPrimary = Color.White,
             onBackground = Color.Black,
-            onSurface = Color.Black
+            onSurface = Color.Black,
         )
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography
+        typography = Typography,
     ) {
         ProvideTextStyle(
             value = TextStyle(fontFamily = FontFamily.Monospace),
-            content = content
+            content = content,
         )
     }
 }
