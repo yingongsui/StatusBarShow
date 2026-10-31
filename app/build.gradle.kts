@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.statusbarshow"
+    namespace = "com.yin.statusbarshow"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.statusbarshow"
+        applicationId = "com.yin.statusbarshow"
         minSdk = 30
         //noinspection EditedTargetSdkVersion
         targetSdk = 37
