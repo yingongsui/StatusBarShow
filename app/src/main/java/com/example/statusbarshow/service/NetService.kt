@@ -59,8 +59,6 @@ class NetService : Service() {
                 var lastTxBytes = TrafficStats.getTotalTxBytes()
                 var lastTime = System.currentTimeMillis()
                 var lastDisplayData: Array<String>? = null
-                var lastRxStr = ""
-                var lastTxStr = ""
 
                 while (NETNotiState || NetFloatingState) {
                     if (!screenstate) {
@@ -111,11 +109,9 @@ class NetService : Service() {
                         val txStr = if (txKB >= 1024) "%.1f MB/s".format(txKB / 1024f) else "%.0f KB/s".format(txKB)
 
                         if (NETNotiState) {
-                            if ((!displayData.contentEquals(lastDisplayData)) || (rxStr != lastRxStr) || (txStr != lastTxStr)) {
+                            if (!displayData.contentEquals(lastDisplayData)) {
                                 notificationManager?.notify(2, updateNotification(displayData, rxStr, txStr))
                                 lastDisplayData = displayData
-                                lastRxStr = rxStr
-                                lastTxStr = txStr
                             }
                         } else {
                             notificationManager?.cancel(2)
@@ -163,8 +159,6 @@ class NetService : Service() {
             .setSmallIcon(IconCompat.createWithBitmap(bitmap))
             .setContentTitle("Net Speed")
             .setContentText("↓: $rxStr   ↑: $txStr")
-            .setGroup("GROUP_SPEED")
-            .setSortKey("2")
             .setWhen(baseWhen)
             .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
