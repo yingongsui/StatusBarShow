@@ -224,14 +224,14 @@ class FloatingWindowHelper(private val context: Context) {
 }
 
 class MyLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner {
-    private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
-    override val lifecycle: Lifecycle get() = lifecycleRegistry
+    override val lifecycle: Lifecycle
+        field = LifecycleRegistry(this)
     override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
 
     fun handleLifecycleEvent(event: Lifecycle.Event) {
-        lifecycleRegistry.handleLifecycleEvent(event)
+        lifecycle.handleLifecycleEvent(event)
     }
 
     fun performRestore(savedState: android.os.Bundle?) {

@@ -61,6 +61,8 @@ import com.example.statusbarshow.ui.theme.DodgerBlue
 //import com.example.statusbarshow.ui.theme.SteelBlue
 import com.example.statusbarshow.ui.theme.AppCurveColors
 import androidx.core.net.toUri
+import androidx.compose.ui.res.stringResource
+
 //import androidx.compose.ui.tooling.preview.Preview
 
 //@Preview(showBackground = true)
@@ -416,7 +418,7 @@ fun SettingsScreen() {
                                 .verticalScroll(rememberScrollState()),
                         ) {
                             Text(
-                                text = "Version " + context.getString(R.string.appversion),
+                                text = "Version " + stringResource(R.string.appversion),
                                 fontSize = 14.sp,
                                 color = Color.Gray,
                                 fontFamily = FontFamily.Monospace,
