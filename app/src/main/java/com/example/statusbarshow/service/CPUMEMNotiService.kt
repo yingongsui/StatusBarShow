@@ -184,7 +184,7 @@ class CPUMEMNotiService : Service() {
      * 增加 setOnlyAlertOnce 防止更新时反复响铃或振动
      */
     private fun buildNotification(currentValue: Array<String>): Notification {
-        val bitmap = MyFunction.createBitmapFromString(currentValue, 0.6f)
+        val bitmap = MyFunction.createBitmapFromString(currentValue, 0.6f,refText = "100%")
 
         val builder = NotificationCompat.Builder(this, channelId)
             // 1. 依然保留 SmallIcon，但建议传入一个纯透明或极简的资源 ID
