@@ -1,13 +1,14 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-  <!-- 单色图标 (Material You 主题图标) 适配 (1.55倍填满) -->
+  <!-- 单色图标 (Material You 主题图标) 适配：折线起点刚好到达图标边缘 (1.255倍) -->
   <group
-      android:scaleX="1.55"
-      android:scaleY="1.55"
+      android:scaleX="1.255"
+      android:scaleY="1.255"
       android:pivotX="54"
       android:pivotY="54">
 
@@ -50,68 +51,66 @@
           android:strokeWidth="1"
           android:fillColor="#00000000" />
 
-      <!-- 扇区 1 -->
+      <!-- 单个雷达扫描扇区（径向灰白渐变） -->
       <path
-          android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z"
-          android:fillColor="#FFFFFF"
-          android:fillAlpha="0.3" />
+          android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z">
+        <aapt:attr name="android:fillColor">
+          <gradient
+              android:type="radial"
+              android:centerX="256"
+              android:centerY="256"
+              android:gradientRadius="210">
+            <item android:offset="0.00" android:color="#E6FFFFFF" />
+            <item android:offset="0.20" android:color="#99FFFFFF" />
+            <item android:offset="0.50" android:color="#4DFFFFFF" />
+            <item android:offset="0.80" android:color="#1AFFFFFF" />
+            <item android:offset="1.00" android:color="#00FFFFFF" />
+          </gradient>
+        </aapt:attr>
+      </path>
 
-      <!-- 扇区 2 -->
-      <group
-          android:rotation="100"
-          android:pivotX="256"
-          android:pivotY="256">
-        <path
-            android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z"
-            android:fillColor="#FFFFFF"
-            android:fillAlpha="0.2" />
-      </group>
-
-      <!-- 扇区 3 -->
-      <group
-          android:rotation="200"
-          android:pivotX="256"
-          android:pivotY="256">
-        <path
-            android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z"
-            android:fillColor="#FFFFFF"
-            android:fillAlpha="0.25" />
-      </group>
-
-      <!-- 环形同心圆标尺 -->
+      <!-- 环形同心圆标尺 r = 55 (同步加粗增强) -->
       <path
-          android:pathData="M256,101 A155,155 0 1,1 255.9,101 Z"
+          android:pathData="M256,201 A55,55 0 1,1 255.9,201 Z"
           android:strokeColor="#FFFFFF"
-          android:strokeAlpha="0.4"
+          android:strokeAlpha="0.65"
           android:strokeWidth="2"
           android:fillColor="#00000000" />
 
       <path
           android:pathData="M256,151 A105,105 0 1,1 255.9,151 Z"
           android:strokeColor="#FFFFFF"
-          android:strokeAlpha="0.5"
+          android:strokeAlpha="0.8"
           android:strokeWidth="2"
           android:fillColor="#00000000" />
 
-      <!-- 居中监控波形折线 (采用最新路径) -->
+      <!-- 居中监控波形折线 (主线加粗) -->
       <path
-          android:pathData="M70,300 L175,300 L195,190 L225,250 L250,170 L280,280 L310,230 L340,300 L450,300"
-          android:strokeWidth="6"
+          android:pathData="M120,256 L155,256 L180,210 L210,290 L240,170 L275,270 L310,200 L340,256 L392,256"
+          android:strokeWidth="12"
           android:strokeLineCap="round"
           android:strokeLineJoin="round"
           android:strokeColor="#FFFFFF"
-          android:strokeAlpha="0.8"
+          android:strokeAlpha="0.4"
           android:fillColor="#00000000" />
 
-      <!-- 居中监控波形折线 (核心高亮) -->
+      <!-- 居中监控波形折线 (核心高亮加粗) -->
       <path
-          android:pathData="M70,300 L175,300 L195,190 L225,250 L250,170 L280,280 L310,230 L340,300 L450,300"
-          android:strokeWidth="2.5"
+          android:pathData="M120,256 L155,256 L180,210 L210,290 L240,170 L275,270 L310,200 L340,256 L392,256"
+          android:strokeWidth="5"
           android:strokeColor="#FFFFFF"
           android:strokeAlpha="1"
           android:strokeLineCap="round"
           android:strokeLineJoin="round"
           android:fillColor="#00000000" />
+
+      <!-- 关键点高亮 -->
+      <path
+          android:pathData="M240,163.5 A6.5,6.5 0 1,1 239.9,163.5 Z"
+          android:fillColor="#FFFFFF" />
+      <path
+          android:pathData="M310,193.5 A6.5,6.5 0 1,1 309.9,193.5 Z"
+          android:fillColor="#FFFFFF" />
 
     </group>
   </group>

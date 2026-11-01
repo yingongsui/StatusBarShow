@@ -5,10 +5,10 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-  <!-- 满格填充 (1.55倍)，完全填满图标视口 -->
+  <!-- 图标缩放：折线起点刚好到达图标边缘 (1.255倍) -->
   <group
-      android:scaleX="1.55"
-      android:scaleY="1.55"
+      android:scaleX="1.255"
+      android:scaleY="1.255"
       android:pivotX="54"
       android:pivotY="54">
 
@@ -16,8 +16,7 @@
         android:scaleX="0.2109375"
         android:scaleY="0.2109375">
 
-      <!-- 雷达背景同心圆与十字轴 -->
-      <!-- r = 180 -->
+      <!-- 雷达背景网格: r = 180 -->
       <path
           android:pathData="M256,76 A180,180 0 1,1 255.9,76 Z"
           android:strokeColor="#FFFFFF"
@@ -55,7 +54,7 @@
           android:strokeWidth="1"
           android:fillColor="#00000000" />
 
-      <!-- 扇区 1: 蓝色雷达扇区 -->
+      <!-- 单个干净的雷达扫描扇区（径向渐变） -->
       <path
           android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z">
         <aapt:attr name="android:fillColor">
@@ -74,99 +73,85 @@
         </aapt:attr>
       </path>
 
-      <!-- 扇区 2: 绿色雷达扇区 (旋转 100 度) -->
-      <group
-          android:rotation="100"
-          android:pivotX="256"
-          android:pivotY="256">
-        <path
-            android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z">
-          <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="256"
-                android:centerY="256"
-                android:gradientRadius="210">
-              <item android:offset="0.00" android:color="#FFFFFFFF" />
-              <item android:offset="0.15" android:color="#F289FF40" />
-              <item android:offset="0.40" android:color="#CC0D8B65" />
-              <item android:offset="0.70" android:color="#66088D5F" />
-              <item android:offset="0.95" android:color="#0D05646E" />
-              <item android:offset="1.00" android:color="#00065031" />
-            </gradient>
-          </aapt:attr>
-        </path>
-      </group>
-
-      <!-- 扇区 3: 紫色雷达扇区 (旋转 200 度) -->
-      <group
-          android:rotation="200"
-          android:pivotX="256"
-          android:pivotY="256">
-        <path
-            android:pathData="M256,256 L307.2,64.7 A198,198 0 0,1 427.5,157.0 Z">
-          <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="256"
-                android:centerY="256"
-                android:gradientRadius="210">
-              <item android:offset="0.00" android:color="#FFFFFFFF" />
-              <item android:offset="0.15" android:color="#F2E100FF" />
-              <item android:offset="0.40" android:color="#CCB713D8" />
-              <item android:offset="0.70" android:color="#668D0882" />
-              <item android:offset="0.95" android:color="#0D6E054E" />
-              <item android:offset="1.00" android:color="#00500631" />
-            </gradient>
-          </aapt:attr>
-        </path>
-      </group>
-
-      <!-- 环形同心圆标尺 r = 155 -->
+      <!-- 环形同心圆标尺 r = 55 (高饱和荧光绿，明显突出) -->
       <path
-          android:pathData="M256,101 A155,155 0 1,1 255.9,101 Z"
-          android:strokeColor="#4DF6F0"
-          android:strokeAlpha="0.35"
+          android:pathData="M256,201 A55,55 0 1,1 255.9,201 Z"
+          android:strokeColor="#00BCD4"
+          android:strokeAlpha="0.4"
           android:strokeWidth="2"
           android:fillColor="#00000000" />
 
-      <!-- 环形同心圆标尺 r = 105 -->
+      <!-- 环形同心圆标尺 r = 105 (高饱和琥珀橙黄，明显突出) -->
       <path
           android:pathData="M256,151 A105,105 0 1,1 255.9,151 Z"
           android:strokeColor="#F59E0B"
-          android:strokeAlpha="0.45"
+          android:strokeAlpha="0.5"
           android:strokeWidth="2"
           android:fillColor="#00000000" />
 
-      <!-- 外层发光波形光晕底层 (采用最新路径: M 70,300 L 175,300 L 195,190 L 225,250 L 250,170 L 280,280 L 310,230 L 340,300 L 450,300) -->
+      <!-- 外层发光波形光晕底层 (加粗模拟 filter="glow") -->
       <path
-          android:pathData="M70,300 L175,300 L195,190 L225,250 L250,170 L280,280 L310,230 L340,300 L450,300"
-          android:strokeWidth="12"
-          android:strokeColor="#4D93F6"
-          android:strokeAlpha="0.3"
+          android:pathData="M120,256 L155,256 L180,210 L210,290 L240,170 L275,270 L310,200 L340,256 L392,256"
+          android:strokeWidth="15"
+          android:strokeColor="#00F2FE"
+          android:strokeAlpha="0.35"
           android:strokeLineCap="round"
           android:strokeLineJoin="round"
           android:fillColor="#00000000" />
 
-      <!-- 居中监控波形折线 (主蓝色线，颜色为最新 #4D93F6) -->
+      <!-- 居中监控波形折线 (双色线性渐变层: #00F2FE -> #4FACFE，加粗主线) -->
       <path
-          android:pathData="M70,300 L175,300 L195,190 L225,250 L250,170 L280,280 L310,230 L340,300 L450,300"
-          android:strokeWidth="6"
-          android:strokeColor="#4D93F6"
-          android:strokeAlpha="0.9"
+          android:pathData="M120,256 L155,256 L180,210 L210,290 L240,170 L275,270 L310,200 L340,256 L392,256"
+          android:strokeWidth="10"
           android:strokeLineCap="round"
           android:strokeLineJoin="round"
-          android:fillColor="#00000000" />
+          android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+          <gradient
+              android:type="linear"
+              android:startX="120"
+              android:startY="256"
+              android:endX="392"
+              android:endY="256">
+            <item android:offset="0.00" android:color="#00F2FE" />
+            <item android:offset="1.00" android:color="#4FACFE" />
+          </gradient>
+        </aapt:attr>
+      </path>
 
-      <!-- 居中监控波形折线 (高亮白线核心) -->
+      <!-- 居中监控波形折线 (高亮白线核心，同步加粗) -->
       <path
-          android:pathData="M70,300 L175,300 L195,190 L225,250 L250,170 L280,280 L310,230 L340,300 L450,300"
-          android:strokeWidth="2.5"
+          android:pathData="M120,256 L155,256 L180,210 L210,290 L240,170 L275,270 L310,200 L340,256 L392,256"
+          android:strokeWidth="4"
           android:strokeColor="#FFFFFF"
           android:strokeAlpha="0.95"
           android:strokeLineCap="round"
           android:strokeLineJoin="round"
           android:fillColor="#00000000" />
+
+      <!-- 关键点高亮光晕 (cx=240, cy=170) -->
+      <path
+          android:pathData="M240,158 A12,12 0 1,1 239.9,158 Z"
+          android:fillColor="#00F2FE"
+          android:fillAlpha="0.35" />
+      <path
+          android:pathData="M240,163.5 A6.5,6.5 0 1,1 239.9,163.5 Z"
+          android:fillColor="#00F2FE" />
+      <path
+          android:pathData="M240,167 A3,3 0 1,1 239.9,167 Z"
+          android:fillColor="#FFFFFF" />
+
+      <!-- 关键点高亮光晕 (cx=310, cy=200) -->
+      <path
+          android:pathData="M310,188 A12,12 0 1,1 309.9,188 Z"
+          android:fillColor="#00F2FE"
+          android:fillAlpha="0.35" />
+      <path
+          android:pathData="M310,193.5 A6.5,6.5 0 1,1 309.9,193.5 Z"
+          android:fillColor="#00F2FE" />
+      <path
+          android:pathData="M310,197 A3,3 0 1,1 309.9,197 Z"
+          android:fillColor="#FFFFFF" />
 
     </group>
   </group>
