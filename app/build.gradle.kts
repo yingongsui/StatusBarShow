@@ -14,10 +14,8 @@ android {
         minSdk = 30
         //noinspection EditedTargetSdkVersion
         targetSdk = 37
-        versionCode = 7
-        versionName = "3.2.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 8
+        versionName = "3.2.5"
     }
 
     buildTypes {
@@ -48,10 +46,7 @@ kotlin {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -59,12 +54,5 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.compose.material.icons.extended)
-//    androidTestImplementation(libs.androidx.ui.test.junit4)
-//    implementation(libs.androidx.ui.tooling.preview)
 }

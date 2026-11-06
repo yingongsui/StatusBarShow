@@ -3,7 +3,6 @@ package com.yin.statusbarshow
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
-//import android.os.Build
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -17,12 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -40,12 +42,21 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.yin.statusbarshow.ui.theme.StatusBarShowTheme
 
-class FloatingWindowHelper(private val context: Context) {
+class FloatingWindowHelper(
+    private val context: Context,
+    private val prefKeyPrefix: String = "Floating",
+    private val defaultY: Int = 300,
+) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var floatingView: ComposeView? = null
+    private var lifecycleOwner: MyLifecycleOwner? = null
     private var params: WindowManager.LayoutParams? = null
-    private var valuesState = androidx.compose.runtime.mutableStateOf(arrayOf("0", "KB/s"))
+    private val valuesState = mutableStateOf(arrayOf("0", "KB/s"))
     private val prefs = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+
+    @Volatile
+    var isShowing: Boolean = false
+        private set
 
     @SuppressLint("ClickableViewAccessibility")
     fun show(values: Array<String>) {
@@ -55,16 +66,13 @@ class FloatingWindowHelper(private val context: Context) {
         }
         valuesState.value = values
 
-        val layoutType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        val savedX = prefs.getInt("${prefKeyPrefix}X", prefs.getInt("FloatingX", 100))
+        val savedY = prefs.getInt("${prefKeyPrefix}Y", prefs.getInt("FloatingY", defaultY))
 
-        // 读取保存的悬浮窗位置
-        val savedX = prefs.getInt("FloatingX", 100)
-        val savedY = prefs.getInt("FloatingY", 300)
-
-        params = WindowManager.LayoutParams(
+        val layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutType,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
         ).apply {
@@ -72,42 +80,43 @@ class FloatingWindowHelper(private val context: Context) {
             x = savedX
             y = savedY
         }
+        params = layoutParams
+
+        val owner = MyLifecycleOwner().apply {
+            performRestore(null)
+            handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            handleLifecycleEvent(Lifecycle.Event.ON_START)
+            handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        }
+        lifecycleOwner = owner
+
+        val bounds = windowManager.currentWindowMetrics.bounds
+        val shortEdgePx = minOf(bounds.width(), bounds.height())
 
         val composeView = ComposeView(context).apply {
-            val lifecycleOwner = MyLifecycleOwner()
-            lifecycleOwner.performRestore(null)
-            lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-            lifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_START)
-            setViewTreeLifecycleOwner(lifecycleOwner)
-            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
-
-            @Suppress("DEPRECATION")
-            val displayMetrics = android.util.DisplayMetrics()
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getRealMetrics(displayMetrics)
-            
-            // 读取用户设置的小窗大小索引（0: 5%, 1: 7.5%, 2: 10%, 3: 12.5%, 4: 15%）
-            val sizePercents = arrayOf(0.05f, 0.075f, 0.10f, 0.125f, 0.15f)
-            val sizePercent = sizePercents.getOrElse(prefs.getInt("FloatingSizeIndex", 0)) { 0.05f }
-            val sizePx = (displayMetrics.widthPixels * sizePercent).toInt().coerceAtLeast(80)
-            val sizeDp = with(context.resources.displayMetrics) { (sizePx / density).dp }
+            setViewTreeLifecycleOwner(owner)
+            setViewTreeSavedStateRegistryOwner(owner)
 
             setContent {
                 StatusBarShowTheme {
+                    val sizePercents = remember { floatArrayOf(0.05f, 0.075f, 0.10f, 0.125f, 0.15f) }
+                    val sizePercent = sizePercents.getOrElse(floatingSizeIndex.intValue) { 0.05f }
+                    val sizePx = (shortEdgePx * sizePercent).toInt().coerceAtLeast(80)
+                    val sizeDp = with(LocalDensity.current) { sizePx.toDp() }
+                    val currentValues = valuesState.value
+                    val shape = remember { RoundedCornerShape(8.dp) }
+
                     Box(
                         modifier = Modifier
                             .size(sizeDp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(shape)
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.Gray, shape)
                             .padding(1.dp),
                     ) {
-                        val currentValues = valuesState.value
-
                         Column(
                             modifier = Modifier.fillMaxSize(),
                         ) {
-
                             // 主数字
                             Box(
                                 modifier = Modifier
@@ -179,17 +188,25 @@ class FloatingWindowHelper(private val context: Context) {
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    params?.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params?.y = initialY + (event.rawY - initialTouchY).toInt()
-                    try {
-                        windowManager.updateViewLayout(composeView, params)
-                        // 实时保存位置
-                        prefs.edit {
-                            putInt("FloatingX", params?.x ?: 100)
-                            putInt("FloatingY", params?.y ?: 300)
+                    params?.let { lp ->
+                        lp.x = initialX + (event.rawX - initialTouchX).toInt()
+                        lp.y = initialY + (event.rawY - initialTouchY).toInt()
+                        try {
+                            windowManager.updateViewLayout(composeView, lp)
+                        } catch (e: Exception) {
+                            LogUtils.e("FloatingWindowHelper", "Failed to update floating layout", e)
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    params?.let { lp ->
+                        prefs.edit {
+                            putInt("${prefKeyPrefix}X", lp.x)
+                            putInt("${prefKeyPrefix}Y", lp.y)
+                            putInt("FloatingX", lp.x)
+                            putInt("FloatingY", lp.y)
+                        }
                     }
                     true
                 }
@@ -198,27 +215,37 @@ class FloatingWindowHelper(private val context: Context) {
         }
 
         try {
-            windowManager.addView(composeView, params)
+            windowManager.addView(composeView, layoutParams)
             floatingView = composeView
+            isShowing = true
         } catch (e: Exception) {
-            e.printStackTrace()
+            owner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            lifecycleOwner = null
+            LogUtils.e("FloatingWindowHelper", "Failed to add floating view", e)
         }
     }
 
     fun update(values: Array<String>) {
-        valuesState.value = values
-        floatingView?.invalidate()
-        floatingView?.requestLayout()
+        if (!values.contentEquals(valuesState.value)) {
+            valuesState.value = values
+        }
     }
 
     fun hide() {
-        floatingView?.let {
+        floatingView?.let { view ->
+            lifecycleOwner?.apply {
+                handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+                handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+                handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            }
+            lifecycleOwner = null
             try {
-                windowManager.removeView(it)
+                windowManager.removeView(view)
             } catch (e: Exception) {
-                e.printStackTrace()
+                LogUtils.e("FloatingWindowHelper", "Failed to remove floating view", e)
             }
             floatingView = null
+            isShowing = false
         }
     }
 }

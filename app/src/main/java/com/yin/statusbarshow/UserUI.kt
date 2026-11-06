@@ -1,8 +1,6 @@
 package com.yin.statusbarshow
 
-
 import android.annotation.SuppressLint
-//import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
@@ -10,26 +8,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
-import com.yin.statusbarshow.ui.theme.AppCurveColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -46,9 +43,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -76,58 +73,60 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.yin.statusbarshow.ui.theme.AppCurveColors
 import com.yin.statusbarshow.ui.theme.BlueViolet
 import com.yin.statusbarshow.ui.theme.DeepSkyBlue
 import com.yin.statusbarshow.ui.theme.DodgerBlue
 import com.yin.statusbarshow.ui.theme.ForestGreen
+import kotlinx.coroutines.delay
+import java.util.Locale
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
-//import kotlin.time.Duration.Companion.milliseconds
-
-
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Home : Screen("home", "Home", Icons.Default.Home)
-    object Profile : Screen("profile", "Information", Icons.Default.Info)
-    object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    data object Home : Screen("home", "Home", Icons.Default.Home)
+    data object Profile : Screen("profile", "Information", Icons.Default.Info)
+    data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
-
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    val items = listOf(Screen.Home, Screen.Profile, Screen.Settings)
-    val isSmallWindow = LocalConfiguration.current.screenHeightDp < 400 //用于小窗时隐藏导航栏
-
-
+    val items = remember { listOf(Screen.Home, Screen.Profile, Screen.Settings) }
+    val isSmallWindow = LocalConfiguration.current.screenHeightDp < 400
 
     Scaffold(
         bottomBar = {
-            if(!isSmallWindow) {
+            if (!isSmallWindow) {
                 NavigationBar {
-                    val currentRoute =
-                        navController.currentBackStackEntryAsState().value?.destination?.route
+                    val backStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = backStackEntry?.destination?.route
+                    val selectedContentColor = MaterialTheme.colorScheme.onSurface
+                    val indicatorTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+
                     items.forEach { screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
                             selected = currentRoute == screen.route,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color.White,
+                                selectedIconColor = selectedContentColor,
                                 unselectedIconColor = Color.Gray,
-                                selectedTextColor = Color.White,
-                                indicatorColor = DodgerBlue.copy(alpha = 0.3f),
+                                selectedTextColor = selectedContentColor,
+                                indicatorColor = indicatorTint,
                             ),
-
                         )
                     }
                 }
@@ -146,32 +145,44 @@ fun MainScreen() {
     }
 }
 
-
-@SuppressLint("RestrictedApi", "MutableCollectionMutableState", "ConfigurationScreenWidthHeight")
+@SuppressLint("MutableCollectionMutableState", "ConfigurationScreenWidthHeight")
 @Composable
-fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: Boolean, linenum: Int, type: String) {
+fun UsageGraph(
+    name: String,
+    pointNum: Int,
+    height: Int,
+    axisON: Boolean,
+    linenum: Int,
+    type: String,
+) {
     val textMeasurer = rememberTextMeasurer()
-    var historyON by remember { mutableStateOf(value = false) }
     val context = LocalContext.current
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-    val colorIndex1 = prefs.getInt("AppCurveColor", 0)
-    val colorIndex2 = prefs.getInt("AppCurveColor2", 1)
-    val color1 = AppCurveColors.getOrElse(colorIndex1) { DodgerBlue }
-    val color2 = AppCurveColors.getOrElse(colorIndex2) { ForestGreen }
-    val paintColor: Array<Color> = arrayOf(color1, color2, BlueViolet)
-    
-    // 使用 remember 缓存 Path 对象，避免每次重绘重复创建
-    val path = remember(linenum) { Array(linenum) { Path() } }
+    val prefs = remember(context) { context.getSharedPreferences("MyPrefs", MODE_PRIVATE) }
 
-    // 使用 remember 缓存点数据列表，避免每次重绘重新读取 SP
+    val color1 = AppCurveColors.getOrElse(appCurveColor1.intValue) { DodgerBlue }
+    val color2 = AppCurveColors.getOrElse(appCurveColor2.intValue) { ForestGreen }
+    val paintColor = remember(color1, color2) { arrayOf(color1, color2, BlueViolet) }
+
+    val coreIndex = remember(type) { type.filter { it.isDigit() }.toIntOrNull() }
+    var historyON by remember(name) { mutableStateOf(prefs.getBoolean("${name}_HIS_ON", false)) }
+
+    val path = remember(linenum) { Array(linenum) { Path() } }
+    val curveStroke = remember { Stroke(width = 5f, cap = StrokeCap.Round) }
+
     var points by remember(name, linenum, pointNum) {
         mutableStateOf(
-            MutableList(linenum) { row ->
-                prefs.getString(name + "HIS$row", "0 ".repeat(pointNum + 1).trimEnd())!!
-                    .split(" ")
-                    .map { it.toFloat() }
-                    .toFloatArray()
+            List(linenum) { row ->
+                val saved = prefs.getString("${name}HIS$row", null)
+                val arr = FloatArray(pointNum + 1)
+                if (!saved.isNullOrBlank()) {
+                    val parts = saved.split(' ')
+                    val limit = minOf(parts.size, arr.size)
+                    for (i in 0 until limit) {
+                        arr[i] = parts[i].toFloatOrNull() ?: 0f
+                    }
+                }
+                arr
             },
         )
     }
@@ -179,10 +190,16 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
     var linetype by remember { mutableIntStateOf(0) }
 
     fun addPoint() {
-        val number = type.filter { it.isDigit() }
-        val newValues = FloatArray(linenum) { idx ->
-            if (number.isNotEmpty() && CPUDrawState.getOrElse(number.toInt()) { true }) {
-                cpuusage.getOrNull(number.toInt())?.getOrNull(linetype)?.toFloat() ?: 0f
+        val updated = List(linenum) { idx ->
+            val oldRow = points[idx]
+            val newRow = FloatArray(pointNum + 1)
+            oldRow.copyInto(newRow, destinationOffset = 0, startIndex = 1, endIndex = pointNum + 1)
+            newRow[pointNum] = if (coreIndex != null) {
+                if (CPUDrawState.getOrElse(coreIndex) { true }) {
+                    cpuusage.getOrNull(coreIndex)?.getOrNull(linetype)?.toFloat() ?: 0f
+                } else {
+                    0f
+                }
             } else {
                 when (type) {
                     "C" -> if (idx == 0) totalcpuusage[0].toFloat() else totalcpuusage[1].toFloat()
@@ -191,37 +208,26 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
                     else -> 0f
                 }
             }
-        }
-
-        points = points.asSequence().mapIndexed { idx, rowArray ->
-            val newRow = rowArray.copyOf()
-            for (i in 0 until pointNum) {
-                newRow[i] = newRow[i + 1]
-            }
-            newRow[pointNum] = newValues.getOrElse(idx) { 0f }
             newRow
-        }.toMutableList()
+        }
+        points = updated
 
         if (historyON) {
-            points.forEachIndexed { idx, rowArray ->
-                prefs.edit { putString(name + "HIS$idx", rowArray.joinToString(" ")) }
+            prefs.edit {
+                updated.forEachIndexed { idx, rowArray ->
+                    putString("${name}HIS$idx", rowArray.joinToString(" "))
+                }
             }
         }
     }
 
-    // 使用 LaunchedEffect 在后台定时采集点，如果监控关闭或屏幕熄灭则暂停
     LaunchedEffect(name, historyON, type) {
         while (true) {
             delay(1000L.milliseconds)
-            val number = type.filter { it.isDigit() }
-            val isActive = if (number.isNotEmpty()) {
+            val isActive = if ((coreIndex != null) || (type == "C") || (type == "M")) {
                 CMNotiState || CMFloatingState
             } else {
-                when (type) {
-                    "C" -> CMNotiState || CMFloatingState
-                    "M" -> CMNotiState || CMFloatingState
-                    else -> NETNotiState || NetFloatingState
-                }
+                NETNotiState || NetFloatingState
             }
             if (screenstate && isActive) {
                 addPoint()
@@ -230,47 +236,65 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
     }
 
     fun toggleHistory() {
-        if (historyON) {
+        val nextState = !historyON
+        historyON = nextState
+        if (!nextState) {
             Toast.makeText(context, "History OFF", Toast.LENGTH_SHORT).show()
-            (0 until linenum).forEach { prefs.edit { putString(name + "HIS$it", "0 ".repeat(pointNum + 1).trimEnd()) } }
-            points = MutableList(linenum) { FloatArray(pointNum + 1) }
+            val zeroStr = "0 ".repeat(pointNum + 1).trimEnd()
+            prefs.edit {
+                putBoolean("${name}_HIS_ON", false)
+                for (row in 0 until linenum) {
+                    putString("${name}HIS$row", zeroStr)
+                }
+            }
+            points = List(linenum) { FloatArray(pointNum + 1) }
         } else {
             Toast.makeText(context, "History ON", Toast.LENGTH_SHORT).show()
+            prefs.edit {
+                putBoolean("${name}_HIS_ON", true)
+                points.forEachIndexed { idx, rowArray ->
+                    putString("${name}HIS$idx", rowArray.joinToString(" "))
+                }
+            }
         }
-        historyON = !historyON
     }
 
     Canvas(
         modifier = Modifier
-            .fillMaxWidth(width)
+            .fillMaxWidth()
             .height(with(LocalDensity.current) { height.toDp() })
             .padding(10.dp)
-            .pointerInput(Unit) {
+            .pointerInput(name, linenum, pointNum) {
                 detectTapGestures(
                     onLongPress = { toggleHistory() },
                     onDoubleTap = { linetype = if (linetype == 0) 1 else 0 },
                 )
             },
     ) {
-        val originX = if (axisON) size.width / 20 else 5f
-        val endY = if (axisON) size.height / 20 else 5f
+        if ((size.width <= 0f) || (size.height <= 0f)) return@Canvas
+
+        val originX = if (axisON) size.width / 20f else 5f
+        val endY = if (axisON) size.height / 20f else 5f
         val originY = size.height - endY
         val endX = size.width - originX
 
         val xscale = (endX - originX) / pointNum
-        val yscale = (originY - endY) / 10
+        val yscale = (originY - endY) / 10f
 
-        // X轴
         drawLine(color = Color.Gray, start = Offset(originX, originY), end = Offset(endX, originY), strokeWidth = 2f, cap = StrokeCap.Round)
         drawLine(color = Color.Gray, start = Offset(originX, endY), end = Offset(endX, endY), strokeWidth = 2f, cap = StrokeCap.Round)
-
-        // Y轴
         drawLine(color = Color.Gray, start = Offset(originX, originY), end = Offset(originX, endY), strokeWidth = 2f, cap = StrokeCap.Round)
         drawLine(color = Color.Gray, start = Offset(endX, originY), end = Offset(endX, endY), strokeWidth = 2f, cap = StrokeCap.Round)
 
         val isNet = (type == "N")
         val maxVal = if (isNet) {
-            maxOf(100f, points.maxOfOrNull { row -> row.maxOrNull() ?: 0f } ?: 100f)
+            var peak = 100f
+            for (row in points) {
+                for (v in row) {
+                    if (v > peak) peak = v
+                }
+            }
+            peak
         } else {
             100f
         }
@@ -286,15 +310,15 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             100f
         }
 
-        // 标签绘制
         if (!axisON) {
             val dynamicDivisor = if (screenWidthDp >= 600) 20f else 30f
+            val labelFontSize = (height / dynamicDivisor).coerceAtLeast(1f)
             drawText(
                 textMeasurer,
                 name,
-                Offset((endX / 10F) * 2.5F, (originY / 10F) * 3F),
+                Offset((endX / 10f) * 2.5f, (originY / 10f) * 3f),
                 TextStyle(
-                    fontSize = (height / dynamicDivisor).sp,
+                    fontSize = labelFontSize.sp,
                     color = Color.Gray.copy(alpha = 0.3f),
                     fontFamily = FontFamily.Monospace,
                 ),
@@ -305,17 +329,20 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             } else {
                 "(%)"
             }
-            drawText(textMeasurer, unitText, Offset(originX, endY - (size.height / 15f)), TextStyle(fontSize = 10.sp, color = Color.Gray))
+            drawText(
+                textMeasurer,
+                unitText,
+                Offset(originX, endY - (size.height / 15f)),
+                TextStyle(fontSize = 10.sp, color = Color.Gray),
+            )
         }
 
-        // X轴刻度
         for (i in 0..pointNum) {
             val x = originX + (i * xscale)
             drawLine(color = Color.Gray, start = Offset(x, originY - 5f), end = Offset(x, originY + 5f), strokeWidth = 2f, cap = StrokeCap.Round)
             drawLine(color = Color.Gray, start = Offset(x, endY - 5f), end = Offset(x, endY + 5f), strokeWidth = 2f, cap = StrokeCap.Round)
         }
 
-        // Y轴刻度
         for (i in 0..10) {
             val y = originY - (i * yscale)
             drawLine(color = Color.Gray, start = Offset(originX - 5f, y), end = Offset(originX + 5f, y), strokeWidth = 2f, cap = StrokeCap.Round)
@@ -324,15 +351,10 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             if (((i % 2) == 0) && axisON) {
                 val labelText = if (isNet) {
                     val valKb = (maxY / 10f) * i
-                    if (maxY == 1024f) {
-                        // 1 MB/s 档位：保留一位小数
-                        "%.1f".format(valKb / 1024f)
-                    } else if (maxY > 1024f) {
-                        // 其他 MB/s 档位：不保留小数
-                        "%.0f".format(valKb / 1024f)
-                    } else {
-                        // KB/s 档位：不保留小数
-                        "%.0f".format(valKb)
+                    when {
+                        maxY == 1024f -> String.format(Locale.US, "%.1f", valKb / 1024f)
+                        maxY > 1024f -> String.format(Locale.US, "%.0f", valKb / 1024f)
+                        else -> String.format(Locale.US, "%.0f", valKb)
                     }
                 } else {
                     (i * 10).toString()
@@ -346,25 +368,24 @@ fun UsageGraph(name: String, pointNum: Int, width: Float, height: Int, axisON: B
             }
         }
 
-        // 纯净的绘制阶段：只读取 points 进行绘制，无任何副作用
-        val number = type.filter { it.isDigit() }
-        (0 until linenum).forEach { itIdx ->
-            path[itIdx].reset()
-            val raw0 = points[itIdx][0]
-            val norm0 = if (isNet) (raw0 / maxY).coerceIn(0f, 1f) else (raw0 / 100f).coerceIn(0f, 1f)
-            path[itIdx].moveTo(originX, originY - (norm0 * 10 * yscale))
-            for (i in 0..pointNum) {
-                val rawVal = points[itIdx][i]
-                val normVal = if (isNet) (rawVal / maxY).coerceIn(0f, 1f) else (rawVal / 100f).coerceIn(0f, 1f)
-                path[itIdx].lineTo(
+        val spanY = 10f * yscale
+        for (itIdx in 0 until linenum) {
+            val currentPath = path[itIdx]
+            currentPath.reset()
+            val row = points[itIdx]
+            val norm0 = (row[0] / maxY).coerceIn(0f, 1f)
+            currentPath.moveTo(originX, originY - (norm0 * spanY))
+            for (i in 1..pointNum) {
+                val normVal = (row[i] / maxY).coerceIn(0f, 1f)
+                currentPath.lineTo(
                     originX + (i * xscale),
-                    originY - (normVal * 10 * yscale),
+                    originY - (normVal * spanY),
                 )
             }
             drawPath(
-                path = path[itIdx],
-                color = paintColor[if (number.isNotEmpty()) linetype else itIdx],
-                style = Stroke(width = 5f, cap = StrokeCap.Round),
+                path = currentPath,
+                color = paintColor[if (coreIndex != null) linetype else itIdx],
+                style = curveStroke,
             )
         }
     }
@@ -375,17 +396,14 @@ fun SettingItem(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
-    hasSwitch: Boolean = false,
     switchScale: Float = 1f,
     switchState: Boolean = false,
     enabled: Boolean = true,
     onSwitchChange: ((Boolean) -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -396,11 +414,17 @@ fun SettingItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
             subtitle?.let {
-                Text(text = it, fontSize = 15.sp, color = Color.Gray, overflow = TextOverflow.Clip, fontFamily = FontFamily.Monospace)
+                Text(
+                    text = it,
+                    fontSize = 15.sp,
+                    color = Color.Gray,
+                    overflow = TextOverflow.Clip,
+                    fontFamily = FontFamily.Monospace,
+                )
             }
         }
 
-        if (hasSwitch && (onSwitchChange != null)) {
+        if (onSwitchChange != null) {
             Switch(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
@@ -413,133 +437,11 @@ fun SettingItem(
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun ColorPickerRow(
-    title: String,
-    colors: List<Color>,
-    selectedIndex: Int,
-    onColorSelected: (Int) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 18.sp,
-            maxLines = 2,
-            softWrap = true,
-            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
-        )
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            colors.forEachIndexed { index, color ->
-                val isSelected = (index == selectedIndex)
-                Box(
-                    modifier = Modifier
-                        .size(40.dp, 28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(color)
-                        .border(
-                            width = if (isSelected) 3.dp else 2.dp,
-                            color = if (isSelected) Color.White else Color.Gray,
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                        .clickable { onColorSelected(index) },
-                )
-            }
-        }
-    }
-}
-
-@SuppressLint("ConfigurationScreenWidthHeight")
-@Composable
-fun ThemeSwatchRow(
-    title: String,
-    selectedIndex: Int,
-    onThemeSelected: (Int) -> Unit,
-) {
-    val themes = listOf("Dark", "Light")
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Default.Brightness4, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 18.sp,
-            maxLines = 2,
-            softWrap = true,
-            modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
-        )
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            themes.forEachIndexed { index, name ->
-                val isSelected = (index == selectedIndex)
-                val innerBg = if (index == 0) Color.Black else Color.White
-                val textColor = if (index == 0) Color.White else Color.Black
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 4.dp)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(innerBg)
-                        .border(
-                            width = if (isSelected) 4.dp else 2.dp,
-                            color = if (isSelected) Color.White else Color.Gray,
-                            shape = RoundedCornerShape(8.dp),
-                        )
-                        .clickable { onThemeSelected(index) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = name,
-                        fontSize = 14.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@SuppressLint("ConfigurationScreenWidthHeight")
-@Composable
-fun OptionSwatchRow(
+private fun LabeledSettingRow(
     icon: ImageVector,
     title: String,
-    contents: Array<String>,
-    selectedIndex: Int,
-    onOptionSelected: (Int) -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
-    val prefs = LocalContext.current.getSharedPreferences("MyPrefs", MODE_PRIVATE)
-    val colorIndex1 = prefs.getInt("AppCurveColor", 0)
-    val colorIndex2 = prefs.getInt("AppCurveColor2", 1)
-    val mainColor = AppCurveColors.getOrElse(colorIndex1) { DodgerBlue }
-    val subColor = AppCurveColors.getOrElse(colorIndex2) { ForestGreen }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -551,9 +453,9 @@ fun OptionSwatchRow(
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
-            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
+            fontSize = 18.sp,
             maxLines = 2,
             softWrap = true,
             modifier = Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.15f),
@@ -562,40 +464,127 @@ fun OptionSwatchRow(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
-        ) {
-            contents.forEachIndexed { index, text ->
-                val isSelected = (index == selectedIndex)
-                val activeColor = if (title == "CPU") {
-                    if (index == 0) mainColor else subColor
-                } else {
-                    mainColor
-                }
+            content = content,
+        )
+    }
+}
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 4.dp)
-                        .height(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (isSelected) activeColor else Color.Transparent)
-                        .border(
-                            width = if (isSelected) 3.dp else 2.dp,
-                            color = if (isSelected) activeColor else Color.Gray,
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                        .clickable { onOptionSelected(index) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = text,
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else Color.Gray,
-                        maxLines = 1,
-                        softWrap = false,
+@Composable
+fun ColorPickerRow(
+    title: String,
+    colors: List<Color>,
+    selectedIndex: Int,
+    onColorSelected: (Int) -> Unit,
+) {
+    val activeBorderColor = MaterialTheme.colorScheme.onSurface
+    val swatchShape = remember { RoundedCornerShape(6.dp) }
+
+    LabeledSettingRow(icon = Icons.Default.Palette, title = title) {
+        colors.forEachIndexed { index, color ->
+            val isSelected = (index == selectedIndex)
+            Box(
+                modifier = Modifier
+                    .size(40.dp, 28.dp)
+                    .clip(swatchShape)
+                    .background(color)
+                    .border(
+                        width = if (isSelected) 3.dp else 2.dp,
+                        color = if (isSelected) activeBorderColor else Color.Gray,
+                        shape = swatchShape,
                     )
-                }
+                    .clickable { onColorSelected(index) },
+            )
+        }
+    }
+}
+
+@Composable
+fun ThemeSwatchRow(
+    title: String,
+    selectedIndex: Int,
+    onThemeSelected: (Int) -> Unit,
+) {
+    val themes = remember { listOf("Dark", "Light") }
+    val activeBorderColor = MaterialTheme.colorScheme.onSurface
+    val itemShape = remember { RoundedCornerShape(8.dp) }
+
+    LabeledSettingRow(icon = Icons.Default.Brightness4, title = title) {
+        themes.forEachIndexed { index, name ->
+            val isSelected = (index == selectedIndex)
+            val innerBg = if (index == 0) Color.Black else Color.White
+            val textColor = if (index == 0) Color.White else Color.Black
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp)
+                    .height(36.dp)
+                    .clip(itemShape)
+                    .background(innerBg)
+                    .border(
+                        width = if (isSelected) 4.dp else 2.dp,
+                        color = if (isSelected) activeBorderColor else Color.Gray,
+                        shape = itemShape,
+                    )
+                    .clickable { onThemeSelected(index) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = name,
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun OptionSwatchRow(
+    icon: ImageVector,
+    title: String,
+    contents: Array<String>,
+    selectedIndex: Int,
+    onOptionSelected: (Int) -> Unit,
+) {
+    val mainColor = AppCurveColors.getOrElse(appCurveColor1.intValue) { DodgerBlue }
+    val subColor = AppCurveColors.getOrElse(appCurveColor2.intValue) { ForestGreen }
+    val optionShape = remember { RoundedCornerShape(6.dp) }
+
+    LabeledSettingRow(icon = icon, title = title) {
+        contents.forEachIndexed { index, text ->
+            val isSelected = (index == selectedIndex)
+            val activeColor = if (title == "CPU") {
+                if (index == 0) mainColor else subColor
+            } else {
+                mainColor
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp)
+                    .height(28.dp)
+                    .clip(optionShape)
+                    .background(if (isSelected) activeColor else Color.Transparent)
+                    .border(
+                        width = if (isSelected) 3.dp else 2.dp,
+                        color = if (isSelected) activeColor else Color.Gray,
+                        shape = optionShape,
+                    )
+                    .clickable { onOptionSelected(index) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = text,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else Color.Gray,
+                    maxLines = 1,
+                    softWrap = false,
+                )
             }
         }
     }
@@ -607,10 +596,12 @@ fun ValueSliderBar(
     title: String,
     value: Float,
     onValueChange: (Float) -> Unit,
+    onValueChangeFinished: (() -> Unit)? = null,
     valueRange: ClosedFloatingPointRange<Float> = 500f..3000f,
     unit: String = "",
 ) {
-    var sliderWidthPx by remember { mutableIntStateOf(0) }// 获取slider宽度
+    var sliderWidthPx by remember { mutableIntStateOf(0) }
+    val pillShape = remember { RoundedCornerShape(10.dp) }
 
     Box(modifier = modifier.fillMaxWidth()) {
         Column {
@@ -621,10 +612,10 @@ fun ValueSliderBar(
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.bodyLarge,
             )
-            // 滑条
             Slider(
                 value = value,
                 onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
                 valueRange = valueRange,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -637,27 +628,28 @@ fun ValueSliderBar(
             Box(
                 modifier = Modifier
                     .offset {
-                        val pxOffset = ((-21.dp.toPx()) + ((sliderWidthPx * (value - valueRange.start)) / (valueRange.endInclusive - valueRange.start))).toInt()
-                        IntOffset(pxOffset, 0)
+                        val badgeWidthPx = 42.dp.roundToPx()
+                        val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+                            .coerceIn(0f, 1f)
+                        val rawOffset = ((sliderWidthPx * fraction) - (badgeWidthPx / 2f)).roundToInt()
+                        val maxOffset = (sliderWidthPx - badgeWidthPx).coerceAtLeast(0)
+                        IntOffset(rawOffset.coerceIn(0, maxOffset), 0)
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "${value.toInt()}$unit",
+                    text = "${value.roundToInt()}$unit",
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     color = DeepSkyBlue,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .background(Color.Black, shape = RoundedCornerShape(10.dp))
-                        .border(1.dp, Color.Gray, shape = RoundedCornerShape(10.dp))
+                        .background(Color.Black, shape = pillShape)
+                        .border(1.dp, Color.Gray, shape = pillShape)
                         .width(42.dp),
                 )
             }
-
-
         }
     }
-
 }

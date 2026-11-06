@@ -14,6 +14,7 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,21 +23,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-//import androidx.compose.ui.tooling.preview.Preview
+import java.util.Locale
 
-//@Preview(showBackground = true)
 @Composable
 fun InformationScreen() {
-    val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-    //*号意味着逐个添加，没有*则是整体添加，会变为数组的数组
-//    val cpudrawstate = remember {
-//        mutableStateListOf<Boolean>().apply { repeat(prefs.getInt("CPUCoreNumber",0)+1) {
-//            add(prefs.getBoolean("CPU${it}DrawState", true))
-//        } }
-//    }
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE) }
+    val coreCount = remember(prefs) { prefs.getInt("CPUCoreNumber", 0) }
+    val cpuSubtitles = remember(prefs, coreCount) {
+        Array(coreCount + 1) { term ->
+            val ghz = prefs.getLong("CPU${term}MaxFreq", 0L).toFloat() / 1_000_000f
+            val arch = MyFunction.getCPUArch(prefs.getString("CPU$term", "").orEmpty())
+            String.format(Locale.US, "%.2fGHz %s", ghz, arch)
+        }
+    }
+    val totalMemorySubtitle = remember(prefs) {
+        val rawKb = MyFunction.getCPUArch(prefs.getString("TotalMemory", "").orEmpty()).toLongOrNull() ?: 0L
+        "${rawKb / 1000L} MB"
+    }
 
-    Box(modifier = Modifier.fillMaxSize().padding(start=10.dp,end=10.dp,top=20.dp), contentAlignment = Alignment.TopCenter) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 10.dp, end = 10.dp, top = 20.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 16.dp),
+        ) {
             Text(
                 text = "CPU Information",
                 fontSize = 25.sp,
@@ -47,23 +64,20 @@ fun InformationScreen() {
                     .padding(top = 10.dp),
             )
 
-            (0..prefs.getInt("CPUCoreNumber", 0)).forEach { term ->
+            for (term in 0..coreCount) {
                 SettingItem(
                     icon = Icons.Default.Memory,
                     title = "CPU$term",
-                    subtitle = "%.2f".format(prefs.getLong("CPU${term}MaxFreq", 0).toFloat() / 1000f / 1000f) + "GHz "
-                            + MyFunction.getCPUArch(
-                        prefs.getString("CPU$term", "").toString(),
-                    ),
-                    hasSwitch = true,
-                    switchState = CPUDrawState[term],
-                    onSwitchChange = {
-                        CPUDrawState[term] = it     //改变值触发重绘，it是Switch改变后的状态
-                        prefs.edit { putBoolean("CPU${term}DrawState", it) }
+                    subtitle = cpuSubtitles[term],
+                    switchState = CPUDrawState.getOrElse(term) { true },
+                    onSwitchChange = { checked ->
+                        if (term < CPUDrawState.size) {
+                            CPUDrawState[term] = checked
+                        }
+                        prefs.edit { putBoolean("CPU${term}DrawState", checked) }
                     },
                 )
             }
-
 
             HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
@@ -76,19 +90,12 @@ fun InformationScreen() {
                     .fillMaxWidth()
                     .padding(top = 10.dp),
             )
+
             SettingItem(
                 icon = Icons.Default.Memory,
                 title = "Total Memory",
-                subtitle = "${
-                    MyFunction.getCPUArch(prefs.getString("TotalMemory", "").toString())
-                        .toLong() / 1000
-                } MB",
-            ) { /* 跳转语言设置 */ }
+                subtitle = totalMemorySubtitle,
+            )
         }
-
     }
 }
-
-
-
-

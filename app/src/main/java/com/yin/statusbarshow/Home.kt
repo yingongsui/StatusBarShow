@@ -25,88 +25,86 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 
 @Composable
 fun HomeScreen() {
-
-    val prefs =  LocalContext.current.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-    val corenum :Int = prefs.getInt("CPUCoreNumber", 0)
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE) }
+    val coreNum = remember(prefs) { prefs.getInt("CPUCoreNumber", 0) }
+    val coreNames = remember(prefs, coreNum) {
+        Array(coreNum + 1) { index ->
+            val ghz = prefs.getLong("CPU${index}MaxFreq", 0L).toFloat() / 1_000_000f
+            " CPU$index\n" + String.format(Locale.US, "%.1fGHz", ghz)
+        }
+    }
     var columnWidth by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 20.dp), contentAlignment = Alignment.TopCenter) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 10.dp, end = 10.dp, top = 20.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .padding(bottom = 16.dp)
                 .onGloballyPositioned { layoutCoordinates ->
-                    columnWidth = layoutCoordinates.size.width // 单位是像素 px
+                    if (columnWidth != layoutCoordinates.size.width) {
+                        columnWidth = layoutCoordinates.size.width
+                    }
                 },
         ) {
-            Text(
-                text = "CPU Usage",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-            )
-            UsageGraph("CPU", 20, 1f, (columnWidth / 16) * 9, axisON = true, 2, "C")
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(),
-            ) {
-                (0..(corenum / 2)).forEach {
-                    val name = " CPU$it\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
-                    Box(modifier = Modifier.weight(1f)) {
-                        UsageGraph(name, 10, 1f, (columnWidth / ((corenum / 2) + 1)), axisON = false, 1, "C$it")
-                    }
-                }
+            SectionTitle("CPU Usage")
 
+            val mainGraphHeight = (columnWidth / 16) * 9
+            val miniGraphHeight = columnWidth / ((coreNum / 2) + 1)
+
+            UsageGraph("CPU", 20, mainGraphHeight, axisON = true, 2, "C")
+
+            CoreRow(range = 0..(coreNum / 2), coreNames = coreNames, height = miniGraphHeight)
+            if (((coreNum / 2) + 1) <= coreNum) {
+                CoreRow(range = ((coreNum / 2) + 1)..coreNum, coreNames = coreNames, height = miniGraphHeight)
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(),
-            ) {
-                (((corenum / 2) + 1)..corenum).forEach {
-                    val name = " CPU$it\n" + "%.1f".format(prefs.getLong("CPU${it}MaxFreq", 0).toFloat() / 1000000f) + "GHz"
-                    Box(modifier = Modifier.weight(1f)) {
-                        UsageGraph(name, 10, 1f, (columnWidth / ((corenum / 2) + 1)), axisON = false, 1, "C$it")
-                    }
-                }
-
-            }
             HorizontalDivider(Modifier, thickness = 3.dp, DividerDefaults.color)
-            Text(
-                text = "Memory Usage",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-            )
-
-            UsageGraph("Memory", 20, 1f, (columnWidth / 16) * 9, axisON = true, 1, "M")
+            SectionTitle("Memory Usage")
+            UsageGraph("Memory", 20, mainGraphHeight, axisON = true, 1, "M")
 
             HorizontalDivider(Modifier, thickness = 3.dp, DividerDefaults.color)
-            Text(
-                text = "Net Speed",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-            )
-
-            UsageGraph("Net Speed", 20, 1f, (columnWidth / 16) * 9, axisON = true, 2, "N")
+            SectionTitle("Net Speed")
+            UsageGraph("Net Speed", 20, mainGraphHeight, axisON = true, 2, "N")
         }
+    }
+}
 
+@Composable
+private fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 25.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp),
+    )
+}
+
+@Composable
+private fun CoreRow(range: IntRange, coreNames: Array<String>, height: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(10.dp)
+            .fillMaxWidth(),
+    ) {
+        for (i in range) {
+            Box(modifier = Modifier.weight(1f)) {
+                UsageGraph(coreNames[i], 10, height, axisON = false, 1, "C$i")
+            }
+        }
     }
 }

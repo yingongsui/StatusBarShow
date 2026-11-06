@@ -1,11 +1,18 @@
 package com.yin.statusbarshow
 
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -14,179 +21,419 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.IconCompat
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
-// 全局变量 - 建议：未来迁移到 ViewModel 或 Repository 中
-var screenstate = true
-var netsamplingtime: Long = 1000
-var cmsamplingtime: Long = 1500
-var cpucorecount: Int = 0
+@Volatile var screenstate: Boolean = true
+@Volatile var netsamplingtime: Long = 1000L
+@Volatile var cmsamplingtime: Long = 1500L
+@Volatile var cpucorecount: Int = 0
 
-var memstate = mutableStateListOf(0, 0)
-var memusage = mutableIntStateOf(0)
-var cpuusage = mutableStateListOf<SnapshotStateList<Int>>()
-var totalcpuusage = mutableStateListOf(0, 0)
-var netspeedRx = mutableFloatStateOf(0f)
-var netspeedTx = mutableFloatStateOf(0f)
+val memstate = mutableStateListOf(0, 0)
+val memusage = mutableIntStateOf(0)
+val cpuusage = mutableStateListOf<SnapshotStateList<Int>>()
+val totalcpuusage = mutableStateListOf(0, 0)
+val netspeedRx = mutableFloatStateOf(0f)
+val netspeedTx = mutableFloatStateOf(0f)
 
-var CPUNotiType = 0
-var MEMNotiType = 1
+@Volatile var CPUNotiType: Int = 0
+@Volatile var MEMNotiType: Int = 1
 
-var CMNotiState = false
-var NETNotiState = false
-var NetFloatingState = false
-var CMFloatingState = false
-var CPUDrawState = mutableStateListOf<Boolean>()
+@Volatile var CMNotiState: Boolean = false
+@Volatile var NETNotiState: Boolean = false
+@Volatile var NetFloatingState: Boolean = false
+@Volatile var CMFloatingState: Boolean = false
+val CPUDrawState = mutableStateListOf<Boolean>()
 
-// 监听屏幕状态
-class ScreenStateApp : Application() {
-    private lateinit var screenStateReceiver: BroadcastReceiver
+val appThemeMode = mutableIntStateOf(0)       // 0 = Dark, 1 = Light
+val appCurveColor1 = mutableIntStateOf(0)
+val appCurveColor2 = mutableIntStateOf(1)
+val floatingSizeIndex = mutableIntStateOf(0)
 
-    override fun onCreate() {
-        super.onCreate()
-        screenStateReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                screenstate = when (intent?.action) {
-                    Intent.ACTION_SCREEN_ON -> true
-                    Intent.ACTION_SCREEN_OFF -> false
-                    else -> screenstate
-                }
-                LogUtils.d("ScreenStateReceiver", "Screen state changed: $screenstate")
+object AppState {
+    @Volatile private var initialized = false
+
+    @Synchronized
+    fun ensureInitialized(context: Context) {
+        if (initialized) return
+        val appContext = context.applicationContext
+        LogUtils.enableLog = (appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
+        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        powerManager?.let { screenstate = it.isInteractive }
+
+        val prefs = appContext.getSharedPreferences("MyPrefs", MODE_PRIVATE)
+        if (!prefs.getBoolean("PrefState", false)) {
+            MyFunction.getSysInfo(appContext)
+        }
+
+        cpucorecount = prefs.getInt("CPUCoreNumber", 0)
+        netsamplingtime = prefs.getLong("NETSamplingTime", 1000L)
+        cmsamplingtime = prefs.getLong("CMSamplingTime", 1500L)
+        CPUNotiType = prefs.getInt("CPUNotiType", 0)
+        MEMNotiType = prefs.getInt("MEMNotiType", 1)
+        CMNotiState = prefs.getBoolean("CMNotiState", false)
+        NETNotiState = prefs.getBoolean("NETNotiState", false)
+        NetFloatingState = prefs.getBoolean("NetFloatingState", false)
+        CMFloatingState = prefs.getBoolean("CMFloatingState", false)
+
+        appThemeMode.intValue = prefs.getInt("AppThemeMode", 0)
+        appCurveColor1.intValue = prefs.getInt("AppCurveColor", 0)
+        appCurveColor2.intValue = prefs.getInt("AppCurveColor2", 1)
+        floatingSizeIndex.intValue = prefs.getInt("FloatingSizeIndex", 0)
+
+        val requiredSize = cpucorecount + 1
+        if (cpuusage.size != requiredSize) {
+            cpuusage.clear()
+            repeat(requiredSize) {
+                cpuusage.add(mutableStateListOf(0, 0))
             }
         }
+        if (CPUDrawState.size != requiredSize) {
+            CPUDrawState.clear()
+            for (index in 0 until requiredSize) {
+                CPUDrawState.add(prefs.getBoolean("CPU${index}DrawState", true))
+            }
+        }
+
+        initialized = true
+    }
+}
+
+class ScreenStateApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        AppState.ensureInitialized(this)
+
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         }
-        registerReceiver(screenStateReceiver, filter)
+        registerReceiver(
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    screenstate = when (intent?.action) {
+                        Intent.ACTION_SCREEN_ON -> true
+                        Intent.ACTION_SCREEN_OFF -> false
+                        else -> screenstate
+                    }
+                    LogUtils.d("ScreenStateReceiver", "Screen state changed: $screenstate")
+                }
+            },
+            filter,
+        )
     }
-
-    // 注意：onTerminate 在真机几乎不触发，建议将注销逻辑放入 Service 的 onDestroy
 }
 
 object MyFunction {
 
-    fun createBitmapFromString(stateValue: Array<String>, size: Float, px: Int = 96, refText: String? = null): Bitmap {
-        val bitmap = createBitmap(px, px, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+    private class RenderScratch {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD) // 窄体粗体，代替 fakeBold
-            textSize = 100f  // 只用来生成 Path，数值无所谓
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            textSize = 100f
         }
-        val gap = px * 0.06f                 // 两行之间的间隙
-        val h1 = (px - gap) * size           // 第一行高度
-        //val top = if (stateValue[0].length < 4) stateValue[0] else "1.0"
+        val path = Path()
+        val bounds = RectF()
+        val refBounds = RectF()
+        val dstRect = RectF()
+        val matrix = Matrix()
+    }
 
-        drawFitted(canvas, paint, stateValue[0], RectF(0f, 0f, px.toFloat(), h1), refText = refText)
-        drawFitted(canvas, paint, stateValue[1], RectF(0f, h1 + gap, px.toFloat(), px.toFloat()))
+    private val renderScratch = ThreadLocal.withInitial { RenderScratch() }
+    private val refBoundsCache = ConcurrentHashMap<String, RectF>()
+
+    private class CoreSysFiles(cpuIndex: Int) {
+        val rootPath = "/sys/devices/system/cpu/cpu$cpuIndex"
+        val timeInStateFile = File("$rootPath/cpufreq/stats/time_in_state")
+        @Volatile var idleTimeFiles: Array<File>? = null
+
+        fun resolveIdleFiles(): Array<File> {
+            idleTimeFiles?.let { if (it.isNotEmpty()) return it }
+            val discovered = ArrayList<File>(4)
+            var j = 0
+            while (true) {
+                val file = File("$rootPath/cpuidle/state$j/time")
+                if (file.exists()) {
+                    discovered.add(file)
+                    j++
+                } else {
+                    break
+                }
+            }
+            val arr = discovered.toTypedArray()
+            if (arr.isNotEmpty()) {
+                idleTimeFiles = arr
+            }
+            return arr
+        }
+    }
+
+    private val coreFilesCache = ConcurrentHashMap<Int, CoreSysFiles>()
+    private val memInfoFile = File("/proc/meminfo")
+
+    fun createContentPendingIntent(context: Context): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    fun ensureSilentChannel(
+        notificationManager: NotificationManager?,
+        channelId: String,
+        channelName: String,
+    ) {
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
+            setShowBadge(false)
+        }
+        notificationManager?.createNotificationChannel(channel)
+    }
+
+    fun startMonitorForeground(service: Service, id: Int, notification: Notification) {
+        val fgsType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        } else {
+            0
+        }
+        ServiceCompat.startForeground(service, id, notification, fgsType)
+    }
+
+    fun buildStatusNotification(
+        context: Context,
+        channelId: String,
+        iconValues: Array<String>,
+        refText: String,
+        title: String,
+        contentText: String,
+        pendingIntent: PendingIntent,
+        baseWhen: Long,
+    ): Notification {
+        val bitmap = createBitmapFromString(iconValues, 0.6f, refText = refText)
+        return NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(IconCompat.createWithBitmap(bitmap))
+            .setContentTitle(title)
+            .setContentText(contentText)
+            .setContentIntent(pendingIntent)
+            .setWhen(baseWhen)
+            .setShowWhen(false)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setOnlyAlertOnce(true)
+            .setOngoing(true)
+            .setSilent(true)
+            .build()
+    }
+
+    fun createBitmapFromString(
+        stateValue: Array<String>,
+        size: Float,
+        px: Int = 96,
+        refText: String? = null,
+    ): Bitmap {
+        val bitmap = createBitmap(px, px, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val scratch = renderScratch.get()!!
+
+        val gap = px * 0.06f
+        val h1 = (px - gap) * size
+
+        scratch.dstRect.apply {
+            left = 0f
+            top = 0f
+            right = px.toFloat()
+            bottom = h1
+        }
+        drawFitted(canvas, scratch, stateValue[0], scratch.dstRect, refText = refText)
+
+        scratch.dstRect.apply {
+            left = 0f
+            top = h1 + gap
+            right = px.toFloat()
+            bottom = px.toFloat()
+        }
+        drawFitted(canvas, scratch, stateValue[1], scratch.dstRect)
         return bitmap
     }
 
     /** 把文字按笔画真实边界画进 dst：高度铺满；太宽就横向压缩，太窄就居中（最多横向拉宽 maxStretch 倍） */
-    private fun drawFitted(canvas: Canvas, paint: Paint, text: String, dst: RectF, refText: String? = null, maxStretch: Float = 1.2f) {
+    private fun drawFitted(
+        canvas: Canvas,
+        scratch: RenderScratch,
+        text: String,
+        dst: RectF,
+        refText: String? = null,
+        maxStretch: Float = 1.2f,
+    ) {
         if (text.isEmpty()) return
-        val measureText = refText ?: text
-        val refPath = Path()
-        paint.getTextPath(measureText, 0, measureText.length, 0f, 0f, refPath)
-        val refB = RectF().also { refPath.computeBounds(it, true) }
+        val paint = scratch.paint
+        val path = scratch.path
+        val b = scratch.bounds
 
-        val path = Path()
+        path.reset()
         paint.getTextPath(text, 0, text.length, 0f, 0f, path)
-        val b = RectF().also { path.computeBounds(it, true) }
-        if ((refB.width() <= 0f) || (refB.height() <= 0f) || (b.height() <= 0f)) return
+        path.computeBounds(b, true)
+        if (b.height() <= 0f) return
+
+        val refB: RectF = if (refText != null) {
+            refBoundsCache.getOrPut(refText) {
+                val tmpPath = Path()
+                paint.getTextPath(refText, 0, refText.length, 0f, 0f, tmpPath)
+                RectF().also { tmpPath.computeBounds(it, true) }
+            }
+        } else {
+            scratch.refBounds.apply { set(b) }
+        }
+
+        if ((refB.width() <= 0f) || (refB.height() <= 0f)) return
 
         val sy = dst.height() / refB.height()
         val sx = minOf(dst.width() / refB.width(), sy * maxStretch)
-        val m = Matrix().apply {
+        val m = scratch.matrix.apply {
+            reset()
             postTranslate(-b.left, -b.top)
             postScale(sx, sy)
-            postTranslate(dst.left + (dst.width() - b.width() * sx) / 2f, dst.top)
+            postTranslate(dst.left + ((dst.width() - (b.width() * sx)) / 2f), dst.top)
         }
         path.transform(m)
         canvas.drawPath(path, paint)
     }
 
-    fun readMemStatus(): Array<Int> {
+    fun readMemStatus() {
+        var totalKb = 0
+        var availKb = 0
+        var foundMask = 0
         try {
-            File("/proc/meminfo").useLines { lines ->
-                lines.forEach { line ->
-                    when {
-                        line.startsWith("MemTotal") -> memstate[0] = parseMemLine(line)
-                        line.startsWith("MemAvailable") -> memstate[1] = parseMemLine(line)
+            memInfoFile.bufferedReader().use { reader ->
+                var line = reader.readLine()
+                while ((line != null) && (foundMask != 3)) {
+                    if (line.startsWith("MemTotal:")) {
+                        totalKb = parseFirstLong(line).toInt()
+                        foundMask = foundMask or 1
+                    } else if (line.startsWith("MemAvailable:")) {
+                        availKb = parseFirstLong(line).toInt()
+                        foundMask = foundMask or 2
                     }
+                    line = reader.readLine()
                 }
             }
-            // 优化：防止除以零异常
-            val total = memstate[0]
-            if (total > 0) {
-                memusage.intValue = 100 - (memstate[1] * 100 / total)
+            if (totalKb > 0) {
+                val usagePercent = (100 - ((availKb * 100L) / totalKb)).toInt().coerceIn(0, 100)
+                Snapshot.withMutableSnapshot {
+                    memstate[0] = totalKb
+                    memstate[1] = availKb
+                    memusage.intValue = usagePercent
+                }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            LogUtils.e("MyFunction", "Failed to read /proc/meminfo", e)
         }
-        return memstate.toTypedArray()
     }
 
-    private fun parseMemLine(line: String): Int =
-        line.split(Regex("\\s+"))[1].toIntOrNull() ?: 0
+    fun readCpuStatusInto(cpuIndex: Int, maxFreq: Long, out: LongArray) {
+        out[0] = 0L
+        out[1] = 0L
+        out[2] = 0L
+        val safeMaxFreq = maxFreq.coerceAtLeast(1L)
+        val coreFiles = coreFilesCache.getOrPut(cpuIndex) { CoreSysFiles(cpuIndex) }
 
-    fun readCpuStatus(cpuIndex: Int): Array<Long> {
-        val root = "/sys/devices/system/cpu/cpu$cpuIndex"
-        val alltimePath = "$root/cpufreq/stats/time_in_state"
-        val maxFreqPath = "$root/cpufreq/cpuinfo_max_freq"
-
-        return try {
-            val maxFreq = readFirstLine(maxFreqPath).toLongOrNull() ?: 1L // 防止除以0
-
-            // 循环累加所有 cpuidle 状态的时间 (state0, state1, state2...)
+        try {
             var totalIdleTime = 0L
-            var j = 0
-            while (true) {
-                val stateIdlePath = "$root/cpuidle/state$j/time"
-                val file = File(stateIdlePath)
-                if (file.exists()) {
-                    val stateTime = file.readText().trim().toLongOrNull() ?: 0L
-                    totalIdleTime += stateTime
-                    j++
-                } else {
-                    break // 没有更多 state 时退出
+            for (idleFile in coreFiles.resolveIdleFiles()) {
+                readFirstLineOrNull(idleFile)?.let { line ->
+                    totalIdleTime += parseFirstLong(line)
                 }
             }
+            out[0] = totalIdleTime / 1000L
 
-            val cpustate = arrayOf(totalIdleTime / 1000, 0L, 0L) // (总idle, normalized_work, total_work)
-
-            File(alltimePath).useLines { lines ->
-                lines.forEach { line ->
-                    val parts = line.split(Regex("\\s+"))
-                    if (parts.size >= 2) {
-                        val freq = parts[0].toLong()
-                        val time = parts[1].toLong() * 10
-                        cpustate[1] += (freq * time) / maxFreq
-                        cpustate[2] += time
+            if (coreFiles.timeInStateFile.exists()) {
+                coreFiles.timeInStateFile.bufferedReader().use { reader ->
+                    var line = reader.readLine()
+                    while (line != null) {
+                        parseTimeInStateLine(line, safeMaxFreq, out)
+                        line = reader.readLine()
                     }
                 }
             }
-            cpustate
         } catch (_: Exception) {
-            arrayOf(0L, 0L, 0L)
+            out[0] = 0L
+            out[1] = 0L
+            out[2] = 0L
         }
     }
 
-    private fun readFirstLine(path: String): String =
-        File(path).bufferedReader().use { it.readLine() ?: "" }
+    private fun parseFirstLong(line: String): Long {
+        val len = line.length
+        var i = 0
+        while ((i < len) && (line[i] !in '0'..'9')) i++
+        if (i >= len) return 0L
+        var value = 0L
+        while (i < len) {
+            val c = line[i]
+            if (c in '0'..'9') {
+                value = (value * 10L) + (c - '0')
+                i++
+            } else {
+                break
+            }
+        }
+        return value
+    }
 
-    /**
-     * 优化点：极大地减少 SharedPreferences 的打开次数。
-     * 原本在循环中 edit，现在改为批量提交。
-     */
+    private fun parseTimeInStateLine(line: String, maxFreq: Long, out: LongArray) {
+        val len = line.length
+        var i = 0
+        while ((i < len) && (line[i] <= ' ')) i++
+        if ((i >= len) || (line[i] !in '0'..'9')) return
+        var freq = 0L
+        while ((i < len) && (line[i] in '0'..'9')) {
+            freq = (freq * 10L) + (line[i] - '0')
+            i++
+        }
+        while ((i < len) && (line[i] <= ' ')) i++
+        if ((i >= len) || (line[i] !in '0'..'9')) return
+        var rawTime = 0L
+        while ((i < len) && (line[i] in '0'..'9')) {
+            rawTime = (rawTime * 10L) + (line[i] - '0')
+            i++
+        }
+        val time = rawTime * 10L
+        out[1] += (freq * time) / maxFreq
+        out[2] += time
+    }
+
+    private fun readFirstLineOrNull(file: File): String? =
+        try {
+            file.bufferedReader().use { it.readLine() }
+        } catch (_: Exception) {
+            null
+        }
+
     fun getSysInfo(context: Context) {
         val prefs = context.getSharedPreferences("MyPrefs", MODE_PRIVATE)
         val dataMap = mutableMapOf<String, String>()
@@ -196,38 +443,38 @@ object MyFunction {
             var currentProcessor = -1
             File("/proc/cpuinfo").useLines { lines ->
                 lines.forEach { line ->
-                    val parts = line.split(":").map { it.trim() }
-                    if (parts.size < 2) return@forEach
-                    val key = parts[0]
-                    val value = parts[1]
+                    val colonIdx = line.indexOf(':')
+                    if (colonIdx <= 0) return@forEach
+                    val key = line.substring(0, colonIdx).trim()
+                    val value = line.substring(colonIdx + 1).trim()
 
                     if (key.contains("processor")) {
                         currentProcessor = value.toIntOrNull() ?: 0
                         cpucorecount = maxOf(cpucorecount, currentProcessor)
 
-                        // 获取该核最大频率
-                        val maxFreq = readFirstLine("/sys/devices/system/cpu/cpu$currentProcessor/cpufreq/cpuinfo_max_freq").toLongOrNull() ?: 0L
-                        longMap["CPU${currentProcessor}MaxFreq"] = maxFreq
+                        val maxFreqFile = File("/sys/devices/system/cpu/cpu$currentProcessor/cpufreq/cpuinfo_max_freq")
+                        longMap["CPU${currentProcessor}MaxFreq"] = parseFirstLong(readFirstLineOrNull(maxFreqFile).orEmpty())
                     }
 
-                    if (currentProcessor != -1) {
-                        val currentVal = dataMap["CPU$currentProcessor"] ?: ""
-                        when {
-                            key.contains("implementer") || key.contains("architecture") ||
-                                    key.contains("variant") || key.contains("part") -> {
-                                dataMap["CPU$currentProcessor"] = "$currentVal$value;"
-                            }
-                        }
+                    if ((currentProcessor != -1) &&
+                        (key.contains("implementer") || key.contains("architecture") ||
+                            key.contains("variant") || key.contains("part"))
+                    ) {
+                        val currentVal = dataMap["CPU$currentProcessor"].orEmpty()
+                        dataMap["CPU$currentProcessor"] = "$currentVal$value;"
                     }
                 }
             }
 
-            // 内存总量
-            File("/proc/meminfo").useLines { it.firstOrNull { l -> l.startsWith("MemTotal") } }?.let {
-                dataMap["TotalMemory"] = it.split(":")[1].trim()
+            memInfoFile.useLines { lines ->
+                lines.firstOrNull { it.startsWith("MemTotal") }
+            }?.let { memTotalLine ->
+                val colonIdx = memTotalLine.indexOf(':')
+                if (colonIdx >= 0) {
+                    dataMap["TotalMemory"] = memTotalLine.substring(colonIdx + 1).trim()
+                }
             }
 
-            // 一次性写入磁盘
             prefs.edit {
                 putBoolean("PrefState", true)
                 putInt("CPUCoreNumber", cpucorecount)
@@ -235,17 +482,15 @@ object MyFunction {
                 longMap.forEach { (k, v) -> putLong(k, v) }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            LogUtils.e("MyFunction", "Failed to read system info", e)
         }
     }
 
     fun getCPUArch(info: String): String {
         return when {
-            // --- 常见 ARM 核心 ---
-            info.contains("0xd44", ignoreCase = true) -> "Cortex-X1 ARMv8.2-A"
-            info.contains("0xd82", ignoreCase = true) -> "Cortex-X4 ARMv9.2-A"
-            info.contains("0xd84", ignoreCase = true) -> "Cortex-A725 ARMv9.2-A"
             info.contains("0xd85", ignoreCase = true) -> "Cortex-X925 ARMv9.4-A"
+            info.contains("0xd84", ignoreCase = true) -> "Cortex-A725 ARMv9.2-A"
+            info.contains("0xd82", ignoreCase = true) -> "Cortex-X4 ARMv9.2-A"
             info.contains("0xc05", ignoreCase = true) -> "Cortex-A5 ARMv7-A"
             info.contains("0xc07", ignoreCase = true) -> "Cortex-A7 ARMv7-A"
             info.contains("0xc08", ignoreCase = true) -> "Cortex-A8 ARMv7-A"
@@ -275,17 +520,14 @@ object MyFunction {
             info.contains("0xd4d", ignoreCase = true) -> "Cortex-A715 ARMv9.2-A"
             info.contains("0xd4e", ignoreCase = true) -> "Cortex-X3 ARMv9-A"
 
-            // --- 高通 Oryon V2 (如 Snapdragon 8 Gen 5 等) ---
             info.contains("0x002", ignoreCase = true) -> {
                 when {
-                    // 如果实际测试中发现 0x3 是性能核、0x2 是能效核，把这里的条件对调即可
                     info.contains("0x3", ignoreCase = true) -> "Qualcomm Oryon V2 (Performance)"
                     info.contains("0x2", ignoreCase = true) -> "Qualcomm Oryon V2 (Efficiency)"
                     else -> "Qualcomm Oryon V2"
                 }
             }
 
-            // --- 高通 Oryon V1 (如 Snapdragon 8 Elite / 8 Gen 4) ---
             info.contains("0x001", ignoreCase = true) -> {
                 val parts = info.split(";").map { it.trim() }
                 when {
@@ -295,15 +537,18 @@ object MyFunction {
                 }
             }
 
-            // --- 兜底处理 ---
-            info.contains("kB", ignoreCase = true) -> Regex("\\d+").find(info)?.value ?: info
+            info.contains("kB", ignoreCase = true) -> parseFirstLong(info).toString()
             else -> info.trim().ifEmpty { "Unknown" }
         }
     }
 }
 
 object LogUtils {
-    private const val ENABLE_LOG = true
-    fun d(tag: String, msg: String) { if (ENABLE_LOG) Log.d(tag, msg) }
-    fun e(tag: String, msg: String, t: Throwable? = null) { if (ENABLE_LOG) Log.e(tag, msg, t) }
+    @Volatile var enableLog: Boolean = false
+    fun d(tag: String, msg: String) {
+        if (enableLog) Log.d(tag, msg)
+    }
+    fun e(tag: String, msg: String, t: Throwable? = null) {
+        if (enableLog) Log.e(tag, msg, t)
+    }
 }
